@@ -1,0 +1,113 @@
+============================================================
+  YZM 2126 - SINAV TAKVİM YÖNETİM SİSTEMİ
+  KURULUM KILAVUZU
+============================================================
+
+ADIM 1: MSSQL VERITABANI KURULUMU
+----------------------------------
+SQL Server Management Studio (SSMS) açın ve aşağıdaki
+dosyaları sırasıyla çalıştırın:
+
+  1. Database\01_CreateDatabase.sql   -- Veritabanını oluşturur
+  2. Database\02_CreateTables.sql     -- Tabloları oluşturur (3NF)
+  3. Database\03_Indexes.sql          -- İndeksleri ekler
+  4. Database\05_Functions.sql        -- UDF'leri oluşturur (önce!)
+  5. Database\04_StoredProcedures.sql -- SP'leri oluşturur
+  6. Database\06_Views.sql            -- View'ları oluşturur
+  7. Database\07_Triggers.sql         -- Trigger'ları oluşturur
+  8. Database\08_SampleData.sql       -- Örnek veri ekler (isteğe bağlı)
+
+ÖNEMLI: 05_Functions.sql, 04_StoredProcedures.sql'dan
+         ÖNCE çalıştırılmalıdır!
+
+ADIM 2: BAĞLANTI DİZESİ AYARI
+-------------------------------
+SinavTakipApp\SinavTakipApp\App.config dosyasını açın.
+
+Windows Authentication (varsayılan):
+  Server=localhost;Database=SinavTakip;Integrated Security=SSPI;
+
+SQLEXPRESS kullanıyorsanız:
+  Server=.\SQLEXPRESS;Database=SinavTakip;Integrated Security=SSPI;
+
+ADIM 3: UYGULAMA DERLEME VE ÇALIŞTIRMA
+----------------------------------------
+Visual Studio ile:
+  1. SinavTakipApp\SinavTakipApp.sln dosyasını açın
+  2. Build > Build Solution (Ctrl+Shift+B)
+  3. F5 ile çalıştırın
+
+Komut satırından (Developer Command Prompt):
+  cd SinavTakipApp\SinavTakipApp
+  msbuild SinavTakipApp.csproj
+  bin\Debug\SinavTakipApp.exe
+
+============================================================
+VERİTABANI NESNELERİ ÖZETİ
+============================================================
+
+TABLOLAR (9 adet - 3NF uyumlu):
+  - Bolumler
+  - Oturumlar (Slotlar)
+  - Derslikler
+  - Dersler
+  - Personel
+  - Personel_Durum (Mazeretler)
+  - Sinavlar
+  - Sinav_Salonlari (Ara tablo)
+  - Gozetmen_Atamalari
+
+STORED PROCEDURES (5 adet, min 3 gerekli):
+  - sp_SinavOlustur       → Dönem çakışma kontrolü ile sinav oluşturur
+  - sp_AkilliSalonAta     → Greedy algoritma ile salon kombinasyonu bulur
+  - sp_GozetmenAta        → Tüm iş kurallarını kontrol ederek gözetmen atar
+  - sp_AdilGozetmenListele→ Görev yüküne göre sıralı gözetmen listesi
+  - sp_YedekAl (BONUS)    → Veritabanını .bak dosyası olarak yedekler
+
+UDF'LER (4 adet, min 3 gerekli):
+  - fn_GozetmenMuzaitMi        → Personelin müsaitliğini kontrol eder
+  - fn_ToplamKapasite          → Sınav salonlarının toplam kapasitesi
+  - fn_GozetmenGorevSayisi     → Dönemdeki görev sayısı (adil dağıtım)
+  - fn_SinifGunlukSinavSayisi  → Günlük dönem sınav sayısı (uyarı için)
+
+VIEW'LAR (4 adet, min 3 gerekli):
+  - v_SinavProgrami      → Tam sınav programı
+  - v_GozetmenGorevleri  → Gözetmen görev detayları
+  - v_GozetmenIstatistik → Gözetmen yük istatistiği
+  - v_SalonDoluluk       → Salon doluluk durumu
+
+TRIGGER'LAR (3 adet, min 2 gerekli):
+  - trg_SalonCakismaKontrol   → Aynı anda salon çift kullanımını engeller
+  - trg_DönemCakismaKontrol   → Aynı dönem/oturum çakışmasını engeller
+  - trg_GozetmenCakismaKontrol→ Gözetmen çift atanmasını engeller
+
+İNDEKSLER (9 adet):
+  - Sinav arama, salon atama, gözetmen atama sorgularında performans
+
+============================================================
+İŞ KURALLARI (Business Rules)
+============================================================
+
+A. ÇAKIŞMA ENGELLENMESİ:
+   ✓ Aynı yarıyıldaki zorunlu dersler aynı oturumda sınav yapamaz
+   ✓ Bir dönem için aynı güne 2'den fazla sınav → UYARI verilir
+
+B. MEKAN VE KAPASİTE:
+   ✓ Bir derslikte aynı anda tek sınav yapılabilir
+   ✓ Toplam kapasite öğrenci sayısından az olamaz
+
+C. PERSONEL/GÖZETMEN:
+   ✓ Aynı anda iki farklı sınavda gözetmen yapamaz
+   ✓ Mazeretli/izinli olduğu slotta atama yapılamaz
+   ✓ Art arda en fazla 3 oturumda gözetmen olabilir
+   ✓ Adil dağıtım: görev yüküne göre sıralı liste
+
+============================================================
+YEDEK ALMA (BONUS)
+============================================================
+Raporlar sekmesinde "Yedek Al" butonu ile sp_YedekAl
+stored procedure çağrılır ve C:\Yedekler klasörüne
+SinavTakip_YYYYMMDD_HHMMSS.bak dosyası oluşturulur.
+
+NOT: SQL Server servis hesabının C:\Yedekler klasörüne
+yazma yetkisi olmalıdır.
