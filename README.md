@@ -1,7 +1,4 @@
-# Sınav Takip Yönetim Sistemi
 
-> **YZM 2126 – Veritabanı Sistemlerine Giriş** dersi kapsamında geliştirilmiş proje.  
-> HFTTF Yazılım Mühendisliği Bölümü — 2025-2026 Bahar Dönemi
 
 ---
 
