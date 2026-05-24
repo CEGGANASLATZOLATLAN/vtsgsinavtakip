@@ -1,113 +1,130 @@
+# sınav takip sistemi
 
-## Teknolojiler
+veri tabanı sistemleri ve yönetimi dersi için geliştirdiğimiz 4 kişilik grup projesi. üniversite sınav süreçlerini — salon atama, gözetmen atama, çakışma kontrolü — otomatikleştiriyor.
 
-| Katman | Teknoloji |
+---
+
+## kullandığımız teknolojiler
+
+| katman | teknoloji |
 |---|---|
-| Uygulama | C# .NET Framework 4.8, WinForms |
-| Veritabanı | Microsoft SQL Server (MSSQL) |
-| Dil (DB) | T-SQL |
-| IDE | Visual Studio 2022 |
+| uygulama | c# .net framework 4.8, winforms |
+| veritabanı | microsoft sql server (mssql) |
+| dil (db) | t-sql |
+| ide | visual studio 2022 |
 
 ---
 
-## Özellikler
+## ne yapıyor bu sistem?
 
-### Modül 1 — Yönetici Ayarları
-- **Bölüm / Ders yönetimi** — 5 mühendislik bölümü, yarıyıl ve kontenjan bilgisiyle
-- **Oturum (slot) tanımlama** — Sınavlar önceden belirlenmiş zaman dilimlerine atanır
-- **Derslik yönetimi** — Kapasite, tip (Amfi/Sınıf/Lab) ve kat bilgisiyle
-- **Personel ve mazeret yönetimi** — İzinli/Danışmanlık saatlerini önceden sisteme işleme
+### modül 1 — yönetici ayarları
+- **bölüm / ders yönetimi** — 5 mühendislik bölümü, yarıyıl ve kontenjan bilgisiyle
+- **oturum (slot) tanımlama** — sınavlar önceden belirlenmiş zaman dilimlerine atanır
+- **derslik yönetimi** — kapasite, tip (amfi/sınıf/lab) ve kat bilgisiyle
+- **personel ve mazeret yönetimi** — izinli/danışmanlık saatlerini önceden sisteme işleme
 
-### Modül 2 — Akıllı Salon Atama
-- `sp_AkilliSalonAta` stored procedure'ü greedy algoritma ile en verimli salon kombinasyonunu bulur
-- Öncelik sırası: **Amfi → Sınıf → Lab**, tercihen aynı katta
-- Salon kapasitesi öğrenci sayısını karşılayana kadar salon eklenir
+### modül 2 — akıllı salon atama
+- `sp_akilliSalonAta` stored procedure'ü greedy algoritma ile en verimli salon kombinasyonunu buluyor
+- öncelik sırası: **amfi → sınıf → lab**, tercihen aynı katta
+- salon kapasitesi öğrenci sayısını karşılayana kadar salon ekleniyor
 
-### Modül 3 — Havuz Sistemi ve Gözetmen Atama
-- Bölüm gözetmenleri yetmediğinde **fakülte ortak havuzundan** otomatik teklif
-- Görev yüküne göre sıralı liste (`fn_GozetmenGorevSayisi`)
-- Mavi = bölüm gözetmeni, Gri = havuzdan, Kırmızı = mazeretli
+### modül 3 — havuz sistemi ve gözetmen atama
+- bölüm gözetmenleri yetmediğinde **fakülte ortak havuzundan** otomatik teklif yapıyor
+- görev yüküne göre sıralı liste (`fn_gozetmenGorevSayisi`)
+- mavi = bölüm gözetmeni, gri = havuzdan, kırmızı = mazeretli
 
 ---
 
-## İş Kuralları ve Kısıtlar
+## iş kuralları
 
-| Kural | Uygulama |
+| kural | nasıl uygulanıyor |
 |---|---|
-| Dönem çakışması: Aynı yarıyıl zorunlu dersler aynı oturuma konulamaz | `sp_SinavOlustur` + `trg_DönemCakismaKontrol` |
-| Günlük sınav limiti: Bir yarıyıl için aynı güne 2'den fazla sınav konulursa uyarı | `fn_SinifGunlukSinavSayisi` |
-| Salon çakışması: Aynı derslik aynı oturumda iki sınava verilemez | `trg_SalonCakismaKontrol` |
-| Kapasite kontrolü: Toplam salon kapasitesi öğrenci sayısının altına düşemez | `sp_AkilliSalonAta` |
-| Gözetmen zaman çakışması: Aynı anda iki sınava atanamaz | `sp_GozetmenAta` + `trg_GozetmenCakismaKontrol` |
-| Mazeret kontrolü: İzinli/danışmanlık saatinde atama yapılamaz | `fn_GozetmenMuzaitMi` |
-| Ardışık oturum sınırı: En fazla 3 arka arkaya oturumda görev | `sp_GozetmenAta` |
-| Adil dağıtım: Görev yükü az olan gözetmene öncelik | `sp_AdilGozetmenListele` |
+| dönem çakışması: aynı bölümde aynı yarıyıl zorunlu dersler aynı oturuma konulamaz | `sp_sinavOlustur` + `trg_dönemCakismaKontrol` |
+| günlük sınav limiti: bir yarıyıl için aynı güne 2'den fazla sınav konulursa uyarı | `fn_sinifGunlukSinavSayisi` |
+| salon çakışması: aynı derslik aynı oturumda iki sınava verilemez | `trg_salonCakismaKontrol` |
+| kapasite kontrolü: toplam salon kapasitesi öğrenci sayısının altına düşemez | `sp_akilliSalonAta` |
+| gözetmen zaman çakışması: aynı anda iki sınava atanamaz | `sp_gozetmenAta` + `trg_gozetmenCakismaKontrol` |
+| mazeret kontrolü: izinli/danışmanlık saatinde atama yapılamaz | `fn_gozetmenMuzaitMi` |
+| ardışık oturum sınırı: en fazla 3 arka arkaya oturumda görev | `sp_gozetmenAta` |
+| adil dağıtım: görev yükü az olan gözetmene öncelik | `sp_adilGozetmenListele` |
 
 ---
 
-## Veritabanı Yapısı
+## veritabanı yapısı
 
 ```
-Bolumler ──< Dersler ──< Sinavlar ──< Sinav_Salonlari ──< Gozetmen_Atamalari
-Bolumler ──< Personel ──────────────────────────────────────/
-Oturumlar ──< Sinavlar
-Oturumlar ──< Personel_Durum
-Derslikler ──< Sinav_Salonlari
+bolumler ──< dersler ──< sinavlar ──< sinav_salonlari ──< gozetmen_atamalari
+bolumler ──< personel ──────────────────────────────────────/
+oturumlar ──< sinavlar
+oturumlar ──< personel_durum
+derslikler ──< sinav_salonlari
 ```
 
-### SQL Scriptleri (Çalıştırma Sırası)
+### sql scriptleri
+
+| dosya | ne yapıyor |
+|---|---|
+| `01_createDatabase.sql` | veritabanını oluşturur |
+| `02_createTables.sql` | 9 tabloyu oluşturur (3nf) |
+| `03_indexes.sql` | 9 performans indeksi |
+| `04_storedProcedures.sql` | 4+1 stored procedure |
+| `05_functions.sql` | 4 udf |
+| `06_views.sql` | 4 view |
+| `07_triggers.sql` | 3 trigger |
+| `08_sampleData.sql` | örnek test verisi (opsiyonel) |
+| `09_updates.sql` | bölüm güncellemeleri |
+| `10_uzaktanEkle.sql` | uzaktan ders türü ekleme |
+| `12_tumBolumlerDersler.sql` | 5 bölümün tüm ders verileri |
+| `13_laboratuvarTuru.sql` | laboratuvar türü güncellemesi |
+| `14_schemaFix.sql` | schema düzeltmeleri |
+| `15_bugFixes.sql` | canlı db'ye bug fix (veri silmez) |
+| `16_personel.sql` | 45 akademik personel |
+
+> ⚠️ dosya numaralarına göre değil, aşağıdaki sıraya göre çalıştır!
+
+### çalıştırma sırası (fresh install)
 
 ```
-01_CreateDatabase.sql       → Veritabanını oluştur
-02_CreateTables.sql         → Tabloları oluştur (9 tablo, 3NF)
-03_Indexes.sql              → 9 performans indeksi
-04_StoredProcedures.sql     → 4 SP + BONUS yedek SP
-05_Functions.sql            → 4 UDF
-06_Views.sql                → 4 View
-07_Triggers.sql             → 3 Trigger
-08_SampleData.sql           → Örnek veriler (oturum, derslik, personel)
-09_Updates.sql              → Bölüm güncellemeleri
-10_UzaktanEkle.sql          → Uzaktan ders türü ekleme
-14_SchemaFix.sql            → Schema düzeltmeleri
-12_TumBolumlerDersler.sql   → Tüm 5 bölümün ders verileri (PDF'lerden)
-13_LaboratuvarTuru.sql      → Laboratuvar türü güncellemesi
+01 → 02 → 03 → 05 → 04 → 06 → 07 → 09 → 10 → 14 → 12 → 13 → 16
 ```
-!!!  Buradaki sıralara dikkat edin dosya sırasına göre değil burda bahsedilene göre execute etmeniz gerekmektedir.  !!!
 
-### Programlanabilirlik Özeti
+> not: 05 (fonksiyonlar), 04'ten (stored procedure'ler) önce gelmeli çünkü sp'ler udf'lere bağımlı.  
+> 08 (örnek veri) ve 15 (bug fix) opsiyonel — canlı db'de sadece gerekirse çalıştır.
 
-| Tür | Adet | İsimler |
+---
+
+## programlanabilirlik özeti
+
+| tür | adet | isimler |
 |---|---|---|
-| Stored Procedure | 4 + BONUS | `sp_SinavOlustur`, `sp_AkilliSalonAta`, `sp_GozetmenAta`, `sp_AdilGozetmenListele`, `sp_YedekAl` |
-| UDF | 4 | `fn_GozetmenMuzaitMi`, `fn_ToplamKapasite`, `fn_GozetmenGorevSayisi`, `fn_SinifGunlukSinavSayisi` |
-| View | 4 | `v_SinavProgrami`, `v_GozetmenGorevleri`, `v_GozetmenIstatistik`, `v_SalonDoluluk` |
-| Trigger | 3 | `trg_SalonCakismaKontrol`, `trg_DönemCakismaKontrol`, `trg_GozetmenCakismaKontrol` |
-| Index | 9 | Tarih/oturum, derslik, personel, bölüm/yarıyıl vb. |
+| stored procedure | 4 + bonus | `sp_sinavOlustur`, `sp_akilliSalonAta`, `sp_gozetmenAta`, `sp_adilGozetmenListele`, `sp_yedekAl` |
+| udf | 4 | `fn_gozetmenMuzaitMi`, `fn_toplamKapasite`, `fn_gozetmenGorevSayisi`, `fn_sinifGunlukSinavSayisi` |
+| view | 4 | `v_sinavProgrami`, `v_gozetmenGorevleri`, `v_gozetmenIstatistik`, `v_salonDoluluk` |
+| trigger | 3 | `trg_salonCakismaKontrol`, `trg_dönemCakismaKontrol`, `trg_gozetmenCakismaKontrol` |
+| index | 9 | tarih/oturum, derslik, personel, bölüm/yarıyıl vb. |
 
 ---
 
-## Kurulum
+## kurulum
 
-### Gereksinimler
-- Windows (WinForms uygulaması)
-- Visual Studio 2019 / 2022
-- SQL Server 2019+ (Express sürümü yeterli)
-- .NET Framework 4.8
+### gereksinimler
+- windows (winforms uygulaması)
+- visual studio 2019 / 2022
+- sql server 2019+ (express sürümü yeterli)
+- .net framework 4.8
 
-### Adımlar
+### adımlar
 
-**1. Veritabanını kur**
+**1. veritabanını kur**
 
-SQL Server Management Studio'da scriptleri sırasıyla çalıştır:
-```
-01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 14 → 12 → 13
-```
+sql server management studio'da scriptleri yukarıdaki sıraya göre çalıştır.
 
-**2. Bağlantı dizesini ayarla**
+**2. bağlantı dizesini ayarla**
 
-`SinavTakipApp/SinavTakipApp/App.config` dosyasını aç, `connectionString` değerini kendi SQL Server instance'ına göre güncelle:
+`SinavTakipApp/SinavTakipApp/App.config` dosyasını aç, `connectionString` değerini kendi sql server instance'ına göre güncelle:
 
-connectionString dosyasını değiştirirken localhost kullanıyorsanız localhost, SQLEXPRESS kullanıyorsanız .\SQLEXPRESS ya da MASAUSTU_ADI\SQLEXPRESS.
+- localhost kullanıyorsan → `localhost`
+- sqlexpress kullanıyorsan → `.\SQLEXPRESS` ya da `MASAUSTU_ADI\SQLEXPRESS`
 
 ```xml
 <connectionStrings>
@@ -117,31 +134,30 @@ connectionString dosyasını değiştirirken localhost kullanıyorsanız localho
 </connectionStrings>
 ```
 
-**3. Uygulamayı çalıştır**
+**3. uygulamayı çalıştır**
 
-Visual Studio'da `SinavTakipApp.sln` dosyasını aç → Build --> Build Solution ardından BAŞLAT DÜĞMESİ ile başlat.
+visual studio'da `SinavTakipApp.sln` dosyasını aç → build → build solution → başlat.
 
 ---
 
-## Ders Verileri
+## ders verileri
 
-`dersprogramları/` klasöründeki PDF ders programlarından üretilmiştir:
+`dersprogramları/` klasöründeki pdf ders programlarından üretilmiştir:
 
-| Bölüm | Yarıyıl |
+| bölüm | yarıyıl |
 |---|---|
-| Yazılım Mühendisliği (YZM) | 1–8 |
-| Elektrik Mühendisliği (ELK) | 1–4 |
-| Makine Mühendisliği (MAK) | 1–7 |
-| Mekatronik Mühendisliği (MEK) | 1–8 |
-| Enerji Sistemleri Mühendisliği (ENS) | 1–8 |
+| yazılım mühendisliği (yzm) | 1–8 |
+| elektrik mühendisliği (elk) | 1–4 |
+| makine mühendisliği (mak) | 1–7 |
+| mekatronik mühendisliği (mek) | 1–8 |
+| enerji sistemleri mühendisliği (ens) | 1–8 |
 
-Uzaktan dersler `DersTuru = 'Uzaktan'`, lab dersleri `DersTuru = 'Laboratuvar'` ve `OgrenciSayisi = 0` olarak işaretlenmiştir.
-Normalde isterlerde bu mevcut değildir fakat isterlerin bilgi eksikliğinden dolayı eklenmiştir.
+uzaktan dersler `dersTuru = 'uzaktan'`, lab dersleri `dersTuru = 'laboratuvar'` ve `ogrenciSayisi = 0` olarak işaretlenmiştir.
 
 ---
 
-## BONUS — Veritabanı Yedekleme
+## bonus — veritabanı yedekleme
 
-Raporlar sekmesindeki **"Yedek Al"** butonuna basıldığında `sp_YedekAl` stored procedure'ü çalışır ve `C:\Yedekler\SinavTakip_YYYYMMDD_HHmmss.bak` formatında yedek dosyası oluşturur.
+raporlar sekmesindeki **"yedek al"** butonuna basıldığında `sp_yedekAl` stored procedure'ü çalışıyor ve `C:\Yedekler\SinavTakip_YYYYMMDD_HHmmss.bak` formatında yedek dosyası oluşturuyor.
 
-> Not: SQL Server servis hesabının hedef klasöre yazma yetkisi olması gerekir.
+> not: sql server servis hesabının hedef klasöre yazma yetkisi olması gerekiyor.
