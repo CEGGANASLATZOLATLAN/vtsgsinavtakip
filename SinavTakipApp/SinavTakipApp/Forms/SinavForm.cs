@@ -55,7 +55,7 @@ namespace SinavTakipApp.Forms
             btnKaydet = new Button { Text = "Kaydet", Location = new Point(255, y), Width = 80,
                 BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 34 };
             btnIptal  = new Button { Text = "Iptal",  Location = new Point(345, y), Width = 75, Height = 34, DialogResult = DialogResult.Cancel };
-            Controls.AddRange(new Control[] { lblUyari, btnKaydet, btnIptal });
+            Controls.AddRange(new Control[] { btnKaydet, btnIptal });
             btnKaydet.Click += BtnKaydet_Click;
             AcceptButton = btnKaydet; CancelButton = btnIptal;
 

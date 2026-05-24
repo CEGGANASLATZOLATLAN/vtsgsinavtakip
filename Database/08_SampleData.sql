@@ -13,10 +13,10 @@ GO
 -- ============================================================
 INSERT INTO Bolumler (BolumAdi) VALUES
     (N'Yazilim Muhendisligi'),
-    (N'Bilgisayar Muhendisligi'),
-    (N'Elektrik-Elektronik Muhendisligi'),
+    (N'Elektrik Muhendisligi'),
     (N'Makine Muhendisligi'),
-    (N'Endustri Muhendisligi');
+    (N'Mekatronik Muhendisligi'),
+    (N'Enerji Sistemleri Muhendisligi');
 GO
 
 -- ============================================================

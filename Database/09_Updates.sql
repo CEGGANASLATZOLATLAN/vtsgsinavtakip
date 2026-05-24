@@ -116,10 +116,11 @@ BEGIN
     SET @SinavID     = NULL;
     SET @UyariMesaji = N'';
 
-    DECLARE @Yariyil INT;
-    SELECT @Yariyil = Yariyil FROM Dersler WHERE DersID = @DersID;
+    DECLARE @Yariyil INT, @BolumID INT;
+    SELECT @Yariyil = Yariyil, @BolumID = BolumID
+    FROM Dersler WHERE DersID = @DersID;
 
-    -- Kural 1: Ayni yariyil + ayni oturum + ayni tarih (tum dersler)
+    -- Kural 1: Ayni BOLUMDE ayni yariyil + ayni oturum + ayni tarih
     IF EXISTS (
         SELECT 1
         FROM Sinavlar sv
@@ -127,14 +128,15 @@ BEGIN
         WHERE sv.Tarih    = @Tarih
           AND sv.OturumID = @OturumID
           AND d.Yariyil   = @Yariyil
+          AND d.BolumID   = @BolumID
           AND sv.DersID  != @DersID
     )
     BEGIN
-        RAISERROR(N'KURAL 1 - Cakisma: Ayni yariyildaki derslerin sinavlari ayni oturuma konamaz!', 16, 1);
+        RAISERROR(N'KURAL 1 - Cakisma: Ayni bolumde ayni yariyildaki derslerin sinavlari ayni oturuma konamaz!', 16, 1);
         RETURN;
     END
 
-    -- Kural 2a: Oturum boslugu - ayni yariyil ayni gunde bitisik oturum yasak
+    -- Kural 2a: Oturum boslugu - ayni BOLUMDE ayni yariyil ayni gunde bitisik oturum yasak
     DECLARE @GapIhlal BIT = 0;
     ;WITH SiraOturum AS (
         SELECT OturumID, ROW_NUMBER() OVER (ORDER BY BaslangicSaat) AS SiraNo
@@ -143,24 +145,32 @@ BEGIN
     SELECT TOP 1 @GapIhlal = 1
     FROM Sinavlar sv
     JOIN Dersler d ON sv.DersID = d.DersID
-    JOIN SiraOturum so_var  ON sv.OturumID    = so_var.OturumID
+    JOIN SiraOturum so_var  ON sv.OturumID      = so_var.OturumID
     JOIN SiraOturum so_yeni ON so_yeni.OturumID = @OturumID
     WHERE sv.Tarih   = @Tarih
       AND d.Yariyil  = @Yariyil
+      AND d.BolumID  = @BolumID
       AND sv.DersID != @DersID
       AND ABS(so_var.SiraNo - so_yeni.SiraNo) = 1;
 
     IF @GapIhlal = 1
     BEGIN
-        RAISERROR(N'KURAL 2 - Oturum Boslugu: Ayni yariyildaki sinavlar arasinda en az 1 oturum boslugu olmali!', 16, 1);
+        RAISERROR(N'KURAL 2 - Oturum Boslugu: Ayni bolumde ayni yariyildaki sinavlar arasinda en az 1 oturum boslugu olmali!', 16, 1);
         RETURN;
     END
 
-    -- Kural 2b: Gunluk max 2 sinav (hard block)
-    DECLARE @GunlukSayi INT = dbo.fn_SinifGunlukSinavSayisi(@Yariyil, @Tarih);
+    -- Kural 2b: Gunluk max 2 sinav (ayni bolumde, hard block)
+    DECLARE @GunlukSayi INT;
+    SELECT @GunlukSayi = COUNT(DISTINCT sv.SinavID)
+    FROM Sinavlar sv
+    JOIN Dersler d ON sv.DersID = d.DersID
+    WHERE d.Yariyil = @Yariyil
+      AND d.BolumID = @BolumID
+      AND sv.Tarih  = @Tarih;
+
     IF @GunlukSayi >= 2
     BEGIN
-        RAISERROR(N'KURAL 2 - Gunluk Limit: Bu yariyil icin bu gune zaten 2 sinav var, 3. eklenemez!', 16, 1);
+        RAISERROR(N'KURAL 2 - Gunluk Limit: Bu bolumde bu yariyil icin bu gune zaten 2 sinav var, 3. eklenemez!', 16, 1);
         RETURN;
     END
 
@@ -273,7 +283,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Kural 1: Ayni yariyil + ayni oturum + ayni tarih
+    -- Kural 1: Ayni BOLUMDE ayni yariyil + ayni oturum + ayni tarih
     IF EXISTS (
         SELECT 1
         FROM inserted i
@@ -283,13 +293,14 @@ BEGIN
                              AND sv_var.SinavID <> i.SinavID
         JOIN Dersler d_var ON sv_var.DersID = d_var.DersID
         WHERE d_var.Yariyil = d_yeni.Yariyil
+          AND d_var.BolumID = d_yeni.BolumID
     )
     BEGIN
-        RAISERROR(N'KURAL 1 - Donem Cakismasi: Ayni yariyildaki sinavlar ayni oturuma konamaz!', 16, 1);
+        RAISERROR(N'KURAL 1 - Donem Cakismasi: Ayni bolumde ayni yariyildaki sinavlar ayni oturuma konamaz!', 16, 1);
         ROLLBACK TRANSACTION; RETURN;
     END
 
-    -- Kural 2: Oturum boslugu (bitisik oturum yasak)
+    -- Kural 2: Oturum boslugu (bitisik oturum yasak, ayni BOLUMDE)
     DECLARE @GapIhlal BIT = 0;
     ;WITH SiraOturum AS (
         SELECT OturumID, ROW_NUMBER() OVER (ORDER BY BaslangicSaat) AS SiraNo
@@ -297,18 +308,19 @@ BEGIN
     )
     SELECT TOP 1 @GapIhlal = 1
     FROM inserted i
-    JOIN Dersler d_yeni    ON i.DersID         = d_yeni.DersID
-    JOIN SiraOturum so_yeni ON i.OturumID      = so_yeni.OturumID
-    JOIN Sinavlar sv_var   ON sv_var.Tarih      = i.Tarih
-                           AND sv_var.SinavID  <> i.SinavID
-    JOIN Dersler d_var     ON sv_var.DersID     = d_var.DersID
-    JOIN SiraOturum so_var ON sv_var.OturumID   = so_var.OturumID
+    JOIN Dersler d_yeni     ON i.DersID          = d_yeni.DersID
+    JOIN SiraOturum so_yeni ON i.OturumID        = so_yeni.OturumID
+    JOIN Sinavlar sv_var    ON sv_var.Tarih       = i.Tarih
+                            AND sv_var.SinavID   <> i.SinavID
+    JOIN Dersler d_var      ON sv_var.DersID      = d_var.DersID
+    JOIN SiraOturum so_var  ON sv_var.OturumID    = so_var.OturumID
     WHERE d_var.Yariyil = d_yeni.Yariyil
+      AND d_var.BolumID = d_yeni.BolumID
       AND ABS(so_var.SiraNo - so_yeni.SiraNo) = 1;
 
     IF @GapIhlal = 1
     BEGIN
-        RAISERROR(N'KURAL 2 - Oturum Boslugu: Ayni yariyildaki sinavlar arasinda en az 1 oturum boslugu olmali!', 16, 1);
+        RAISERROR(N'KURAL 2 - Oturum Boslugu: Ayni bolumde ayni yariyildaki sinavlar arasinda en az 1 oturum boslugu olmali!', 16, 1);
         ROLLBACK TRANSACTION; RETURN;
     END
 END

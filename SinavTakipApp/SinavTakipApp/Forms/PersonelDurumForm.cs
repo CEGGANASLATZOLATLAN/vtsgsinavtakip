@@ -135,7 +135,9 @@ namespace SinavTakipApp.Forms
                 new SqlParameter("@t",    dtpTarih.Value.Date),
                 new SqlParameter("@oid",  oturumId),
                 new SqlParameter("@mt",   cmbMazeret.SelectedItem.ToString()),
-                new SqlParameter("@ac",   (object)txtAciklama.Text.Trim() ?? DBNull.Value)
+                new SqlParameter("@ac",   string.IsNullOrWhiteSpace(txtAciklama.Text)
+                    ? (object)DBNull.Value
+                    : txtAciklama.Text.Trim())
             };
 
             string err; bool ok;

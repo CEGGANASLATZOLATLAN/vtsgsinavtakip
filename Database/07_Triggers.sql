@@ -47,24 +47,20 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Kural 1: Ayni BOLUMDE ayni yariyildaki dersler ayni oturuma konamaz
     IF EXISTS (
         SELECT 1
         FROM inserted i
         JOIN Dersler d_yeni ON i.DersID = d_yeni.DersID
-        WHERE d_yeni.DersTuru = N'Zorunlu'
-          AND EXISTS (
-              SELECT 1
-              FROM Sinavlar sv_var
-              JOIN Dersler d_var ON sv_var.DersID = d_var.DersID
-              WHERE sv_var.Tarih    = i.Tarih
-                AND sv_var.OturumID = i.OturumID
-                AND sv_var.SinavID <> i.SinavID
-                AND d_var.Yariyil   = d_yeni.Yariyil
-                AND d_var.DersTuru  = N'Zorunlu'
-          )
+        JOIN Sinavlar sv_var ON sv_var.Tarih    = i.Tarih
+                             AND sv_var.OturumID = i.OturumID
+                             AND sv_var.SinavID <> i.SinavID
+        JOIN Dersler d_var ON sv_var.DersID = d_var.DersID
+        WHERE d_var.Yariyil = d_yeni.Yariyil
+          AND d_var.BolumID = d_yeni.BolumID
     )
     BEGIN
-        RAISERROR(N'Donem Cakismasi: Ayni yariyildaki zorunlu derslerin sinavlari ayni oturuma konamaz!', 16, 1);
+        RAISERROR(N'Donem Cakismasi: Ayni bolumde ayni yariyildaki sinavlar ayni oturuma konamaz!', 16, 1);
         ROLLBACK TRANSACTION;
         RETURN;
     END
