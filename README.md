@@ -1,15 +1,3 @@
-# Sınav Takip Yönetim Sistemi
-
-> **YZM 2126 – Veritabanı Sistemlerine Giriş** dersi kapsamında geliştirilmiş proje.  
-> HFTTF Yazılım Mühendisliği Bölümü — 2025-2026 Bahar Dönemi
-
----
-
-## Proje Hakkında
-
-Bir mühendislik fakültesinin sınav takvimini yönetmek için tasarlanmış masaüstü uygulamasıdır. Sistem; ders kontenjanlarına göre akıllı salon ataması yapar, gözetmen çakışmalarını engeller ve tüm iş kurallarını veritabanı düzeyinde (trigger + stored procedure) uygular.
-
----
 
 ## Teknolojiler
 
@@ -84,6 +72,7 @@ Derslikler ──< Sinav_Salonlari
 12_TumBolumlerDersler.sql   → Tüm 5 bölümün ders verileri (PDF'lerden)
 13_LaboratuvarTuru.sql      → Laboratuvar türü güncellemesi
 ```
+!!!  Buradaki sıralara dikkat edin dosya sırasına göre değil burda bahsedilene göre execute etmeniz gerekmektedir.  !!!
 
 ### Programlanabilirlik Özeti
 
@@ -118,6 +107,8 @@ SQL Server Management Studio'da scriptleri sırasıyla çalıştır:
 
 `SinavTakipApp/SinavTakipApp/App.config` dosyasını aç, `connectionString` değerini kendi SQL Server instance'ına göre güncelle:
 
+connectionString dosyasını değiştirirken localhost kullanıyorsanız localhost, SQLEXPRESS kullanıyorsanız .\SQLEXPRESS ya da MASAUSTU_ADI\SQLEXPRESS.
+
 ```xml
 <connectionStrings>
   <add name="SinavTakipDB"
@@ -128,7 +119,7 @@ SQL Server Management Studio'da scriptleri sırasıyla çalıştır:
 
 **3. Uygulamayı çalıştır**
 
-Visual Studio'da `SinavTakipApp.sln` dosyasını aç → **F5** ile başlat.
+Visual Studio'da `SinavTakipApp.sln` dosyasını aç → Build --> Build Solution ardından BAŞLAT DÜĞMESİ ile başlat.
 
 ---
 
@@ -145,6 +136,7 @@ Visual Studio'da `SinavTakipApp.sln` dosyasını aç → **F5** ile başlat.
 | Enerji Sistemleri Mühendisliği (ENS) | 1–8 |
 
 Uzaktan dersler `DersTuru = 'Uzaktan'`, lab dersleri `DersTuru = 'Laboratuvar'` ve `OgrenciSayisi = 0` olarak işaretlenmiştir.
+Normalde isterlerde bu mevcut değildir fakat isterlerin bilgi eksikliğinden dolayı eklenmiştir.
 
 ---
 
