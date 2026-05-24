@@ -64,20 +64,20 @@ derslikler ──< sinav_salonlari
 
 | dosya | ne yapıyor |
 |---|---|
-| `01_createDatabase.sql` | veritabanını oluşturur |
-| `02_createTables.sql` | 9 tabloyu oluşturur (3nf) |
-| `03_indexes.sql` | 9 performans indeksi |
-| `04_storedProcedures.sql` | 4+1 stored procedure |
-| `05_functions.sql` | 4 udf |
-| `06_views.sql` | 4 view |
-| `07_triggers.sql` | 3 trigger |
-| `08_sampleData.sql` | örnek test verisi (opsiyonel) |
-| `09_updates.sql` | bölüm güncellemeleri |
-| `10_uzaktanEkle.sql` | uzaktan ders türü ekleme |
-| `12_tumBolumlerDersler.sql` | 5 bölümün tüm ders verileri |
-| `13_laboratuvarTuru.sql` | laboratuvar türü güncellemesi |
-| `14_schemaFix.sql` | schema düzeltmeleri |
-| `15_bugFixes.sql` | canlı db'ye bug fix (veri silmez) |
+| `01_veritabaniOlustur.sql` | veritabanını oluşturur |
+| `02_tablolariOlustur.sql` | 9 tabloyu oluşturur (3nf) |
+| `03_indeksler.sql` | 9 performans indeksi |
+| `04_prosedurler.sql` | 4+1 stored procedure |
+| `05_fonksiyonlar.sql` | 4 udf |
+| `06_gorunumler.sql` | 4 view |
+| `07_tetikleyiciler.sql` | 3 trigger |
+| `08_ornekVeri.sql` | örnek test verisi (opsiyonel) |
+| `09_guncellemeler.sql` | bölüm güncellemeleri |
+| `10_uzaktanDersEkle.sql` | uzaktan ders türü ekleme |
+| `12_tumDersler.sql` | 5 bölümün tüm ders verileri |
+| `13_labTuru.sql` | laboratuvar türü güncellemesi |
+| `14_schemaDuzelt.sql` | schema düzeltmeleri |
+| `15_bugDuzelt.sql` | canlı db'ye bug düzeltmeleri (veri silmez) |
 | `16_personel.sql` | 45 akademik personel |
 
 > ⚠️ dosya numaralarına göre değil, aşağıdaki sıraya göre çalıştır!
@@ -88,8 +88,8 @@ derslikler ──< sinav_salonlari
 01 → 02 → 03 → 05 → 04 → 06 → 07 → 09 → 10 → 14 → 12 → 13 → 16
 ```
 
-> not: 05 (fonksiyonlar), 04'ten (stored procedure'ler) önce gelmeli çünkü sp'ler udf'lere bağımlı.  
-> 08 (örnek veri) ve 15 (bug fix) opsiyonel — canlı db'de sadece gerekirse çalıştır.
+> not: 05 (fonksiyonlar), 04'ten (prosedürler) önce gelmeli çünkü prosedürler fonksiyonlara bağımlı.  
+> 08 (örnek veri) ve 15 (bug düzeltmeleri) opsiyonel — canlı db'de sadece gerekirse çalıştır.
 
 ---
 
