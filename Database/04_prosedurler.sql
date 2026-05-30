@@ -85,6 +85,13 @@ BEGIN
         RAISERROR(N'Sinav bulunamadi.', 16, 1); RETURN;
     END
 
+    -- Uzaktan veya Laboratuvar dersi ise (OgrenciSayisi = 0) fiziksel salon gerekmez
+    IF @OgrenciSayisi = 0
+    BEGIN
+        RAISERROR(N'SALON_GEREKMIYOR: Bu ders turu (Uzaktan/Laboratuvar) fiziksel salon gerektirmez.', 16, 1);
+        RETURN;
+    END
+
     BEGIN TRY
         BEGIN TRANSACTION;
 

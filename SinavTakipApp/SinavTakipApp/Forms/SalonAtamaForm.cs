@@ -175,7 +175,19 @@ namespace SinavTakipApp.Forms
 
             if (!ok)
             {
-                MessageBox.Show("Salon atanamadi:\n\n" + err, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (err.Contains("SALON_GEREKMIYOR"))
+                {
+                    MessageBox.Show(
+                        "Bu ders türü (Uzaktan / Laboratuvar) için fiziksel salon ataması gerekmez.\n\n" +
+                        "Sınav kaydı oluşturulmuş durumda, salon ataması yapılmayacak.",
+                        "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    lblDurum.Text = "Bu ders türü salon ataması gerektirmiyor (Uzaktan/Laboratuvar).";
+                    lblDurum.ForeColor = Color.FromArgb(100, 100, 0);
+                }
+                else
+                {
+                    MessageBox.Show("Salon atanamadi:\n\n" + err, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 return;
             }
 
