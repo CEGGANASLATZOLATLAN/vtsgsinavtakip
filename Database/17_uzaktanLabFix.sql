@@ -1,10 +1,12 @@
 -- ============================================================
 -- 17_uzaktanLabFix.sql
 -- Uzaktan ve Laboratuvar dersleri icin salon atama duzeltmesi.
--- OgrenciSayisi = 0 olan derslerde sp_AkilliSalonAta artik
--- anlamli bir mesajla geri donuyor (sessiz bos donus yerine).
+-- Bu ders turleri artik gercek ogrenci sayisiyla salon alabilir.
+-- sp_AkilliSalonAta'dan SALON_GEREKMIYOR blogu kaldirildi.
 --
 -- CALISTIRMA: Mevcut veritabaninda calistir, veri silinmez.
+-- Not: Mevcut uzaktan/lab derslerinin OgrenciSayisi'ni
+--      uygulamadan Ders Duzenle ekraniyla guncelleyin.
 -- ============================================================
 USE SinavTakip;
 GO
@@ -27,13 +29,6 @@ BEGIN
     IF @OgrenciSayisi IS NULL
     BEGIN
         RAISERROR(N'Sinav bulunamadi.', 16, 1); RETURN;
-    END
-
-    -- Uzaktan veya Laboratuvar dersi ise (OgrenciSayisi = 0) fiziksel salon gerekmez
-    IF @OgrenciSayisi = 0
-    BEGIN
-        RAISERROR(N'SALON_GEREKMIYOR: Bu ders turu (Uzaktan/Laboratuvar) fiziksel salon gerektirmez.', 16, 1);
-        RETURN;
     END
 
     BEGIN TRY

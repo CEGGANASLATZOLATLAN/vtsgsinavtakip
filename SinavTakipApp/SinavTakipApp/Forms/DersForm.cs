@@ -39,13 +39,7 @@ namespace SinavTakipApp.Forms
             cmbTur = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
             cmbTur.Items.AddRange(new object[] { "Zorunlu", "Secmeli", "Uzaktan", "Laboratuvar" });
             cmbTur.SelectedIndex = 0;
-            cmbTur.SelectedIndexChanged += (s, e) =>
-            {
-                string t = cmbTur.SelectedItem?.ToString();
-                bool sifirTur = t == "Uzaktan" || t == "Laboratuvar";
-                numOgrenci.Enabled = !sifirTur;
-                if (sifirTur) numOgrenci.Value = 0;
-            };
+            // Tüm ders türlerinde öğrenci sayısı girilebilir (uzaktan/lab dahil)
 
             cmbBolum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
             LoadBolumler();
@@ -96,9 +90,7 @@ namespace SinavTakipApp.Forms
             if (string.IsNullOrWhiteSpace(txtKod.Text)) { MessageBox.Show("Ders kodu bos olamaz."); return; }
             if (string.IsNullOrWhiteSpace(txtAd.Text))  { MessageBox.Show("Ders adi bos olamaz."); return; }
             if (cmbBolum.SelectedIndex < 0) { MessageBox.Show("Bolum secin."); return; }
-            string selectedTur = cmbTur.SelectedItem?.ToString();
-            bool sifirTur = selectedTur == "Uzaktan" || selectedTur == "Laboratuvar";
-            if (!sifirTur && numOgrenci.Value == 0) { MessageBox.Show("Ogrenci sayisi 0 olamaz."); return; }
+            if (numOgrenci.Value == 0) { MessageBox.Show("Ogrenci sayisi 0 olamaz."); return; }
 
             int bolumId = ((ComboItem)cmbBolum.SelectedItem).Id;
             var ps = new[]
