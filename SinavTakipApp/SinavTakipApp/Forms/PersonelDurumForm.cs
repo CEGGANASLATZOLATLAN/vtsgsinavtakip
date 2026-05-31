@@ -35,7 +35,7 @@ namespace SinavTakipApp.Forms
             cmbPersonel = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
             LoadPersonel();
 
-            dtpTarih = new DateTimePicker { Format = DateTimePickerFormat.Custom, CustomFormat = "dd MMMM yyyy" };
+            dtpTarih = new DateTimePicker { Format = DateTimePickerFormat.Short };
 
             chkTumGun = new CheckBox { Text = "Tum Gun", Checked = true, Width = 100 };
             cmbOturum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Enabled = false };
