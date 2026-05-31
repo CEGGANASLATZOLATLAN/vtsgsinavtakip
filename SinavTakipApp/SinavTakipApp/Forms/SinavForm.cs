@@ -17,7 +17,7 @@ namespace SinavTakipApp.Forms
         public SinavForm()
         {
             Text = "Yeni Sinav Olustur";
-            Size = new Size(450, 320);
+            Size = new Size(640, 340);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
@@ -27,11 +27,11 @@ namespace SinavTakipApp.Forms
             void AddRow(string label, Control ctrl)
             {
                 Controls.Add(new Label { Text = label, Location = new Point(15, y + 3), AutoSize = true });
-                ctrl.Location = new Point(140, y); ctrl.Width = 280;
+                ctrl.Location = new Point(150, y); ctrl.Width = 460;
                 Controls.Add(ctrl); y += 40;
             }
 
-            cmbDers    = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbDers    = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 580 };
             dtpTarih   = new DateTimePicker { Format = DateTimePickerFormat.Short, Value = DateTime.Today };
             cmbOturum  = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
 
@@ -45,16 +45,16 @@ namespace SinavTakipApp.Forms
             lblUyari = new Label
             {
                 Location = new Point(15, y),
-                Size = new Size(410, 50),
+                Size = new Size(600, 50),
                 ForeColor = Color.FromArgb(255, 100, 0),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 Text = ""
             };
             Controls.Add(lblUyari); y += 55;
 
-            btnKaydet = new Button { Text = "Kaydet", Location = new Point(255, y), Width = 80,
+            btnKaydet = new Button { Text = "Kaydet", Location = new Point(440, y), Width = 90,
                 BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 34 };
-            btnIptal  = new Button { Text = "Iptal",  Location = new Point(345, y), Width = 75, Height = 34, DialogResult = DialogResult.Cancel };
+            btnIptal  = new Button { Text = "Iptal",  Location = new Point(540, y), Width = 75, Height = 34, DialogResult = DialogResult.Cancel };
             Controls.AddRange(new Control[] { btnKaydet, btnIptal });
             btnKaydet.Click += BtnKaydet_Click;
             AcceptButton = btnKaydet; CancelButton = btnIptal;
@@ -68,7 +68,7 @@ namespace SinavTakipApp.Forms
         {
             cmbDers.Items.Clear();
             var dt = DatabaseHelper.Query(
-                "SELECT d.DersID, d.DersKodu+' - '+d.Ad+' ('+CAST(d.OgrenciSayisi AS NVARCHAR)+' kisi, '+CAST(d.Yariyil AS NVARCHAR)+'. Yariyil)' AS Ad " +
+                "SELECT d.DersID, d.DersKodu+' - '+d.Ad+' ['+d.DersTuru+'] ('+CAST(d.OgrenciSayisi AS NVARCHAR)+' kisi, '+CAST(d.Yariyil AS NVARCHAR)+'. Yariyil)' AS Ad " +
                 "FROM Dersler d ORDER BY d.Yariyil, d.DersKodu");
             foreach (DataRow row in dt.Rows)
                 cmbDers.Items.Add(new ComboItem(Convert.ToInt32(row["DersID"]), row["Ad"].ToString()));
