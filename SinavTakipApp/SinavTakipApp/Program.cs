@@ -8,9 +8,8 @@ namespace SinavTakipApp
 {
     static class Program
     {
-        // Takvim popup'i icin Windows thread locale'ini Turkce yap (LCID 1055 = tr-TR)
-        [DllImport("kernel32.dll")]
-        private static extern bool SetThreadLocale(uint Locale);
+        [DllImport("kernel32.dll")] private static extern bool SetThreadLocale(uint Locale);
+        [DllImport("kernel32.dll")] private static extern ushort SetThreadUILanguage(ushort LangId);
 
         [STAThread]
         static void Main()
@@ -22,11 +21,12 @@ namespace SinavTakipApp
             CultureInfo.DefaultThreadCurrentCulture   = trTR;
             CultureInfo.DefaultThreadCurrentUICulture = trTR;
 
-            // Windows native kontrollerini (DateTimePicker takvimi) Turkce yap
-            SetThreadLocale(1055); // 1055 = tr-TR LCID
-
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // EnableVisualStyles sonrasi tekrar set et — bazi Windows versiyonlarinda sifirlanir
+            SetThreadLocale(1055);       // tr-TR LCID
+            SetThreadUILanguage(0x041F); // tr-TR LangId
 
             if (!DatabaseHelper.TestConnection())
             {
