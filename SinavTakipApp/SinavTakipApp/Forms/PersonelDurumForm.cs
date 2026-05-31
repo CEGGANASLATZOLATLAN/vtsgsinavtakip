@@ -9,7 +9,7 @@ namespace SinavTakipApp.Forms
     public class PersonelDurumForm : Form, IEditForm
     {
         private ComboBox cmbPersonel, cmbOturum, cmbMazeret;
-        private DateTimePicker dtpTarih;
+        private NumericUpDown numGun, numYil; private ComboBox cmbAy;
         private TextBox txtAciklama;
         private CheckBox chkTumGun;
         private Button btnKaydet, btnIptal;
@@ -35,7 +35,16 @@ namespace SinavTakipApp.Forms
             cmbPersonel = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
             LoadPersonel();
 
-            dtpTarih = new DateTimePicker { Format = DateTimePickerFormat.Short };
+            // Turkce gun/ay/yil kontrolleri (DateTimePicker yerine)
+            numGun = new NumericUpDown { Minimum = 1, Maximum = 31, Value = DateTime.Today.Day,
+                Width = 50, ThousandsSeparator = false };
+            numYil = new NumericUpDown { Minimum = 2024, Maximum = 2035, Value = DateTime.Today.Year,
+                Width = 65, ThousandsSeparator = false };
+            cmbAy  = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
+            cmbAy.Items.AddRange(new object[] {
+                "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık" });
+            cmbAy.SelectedIndex = DateTime.Today.Month - 1;
 
             chkTumGun = new CheckBox { Text = "Tum Gun", Checked = true, Width = 100 };
             cmbOturum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Enabled = false };
@@ -48,7 +57,13 @@ namespace SinavTakipApp.Forms
             txtAciklama = new TextBox { Multiline = true, Height = 50 };
 
             AddRow("Personel:", cmbPersonel);
-            AddRow("Tarih:", dtpTarih);
+
+            // Tarih satiri: gun | ay | yil
+            Controls.Add(new Label { Text = "Tarih:", Location = new Point(15, y + 3), AutoSize = true });
+            numGun.Location = new Point(140, y);
+            cmbAy.Location  = new Point(140 + 55, y);
+            numYil.Location = new Point(140 + 55 + 125, y);
+            Controls.AddRange(new Control[] { numGun, cmbAy, numYil }); y += 38;
 
             Controls.Add(new Label { Text = "Tum Gun:", Location = new Point(15, y + 3), AutoSize = true });
             chkTumGun.Location = new Point(140, y);
@@ -102,7 +117,12 @@ namespace SinavTakipApp.Forms
             int personelId = Convert.ToInt32(r["PersonelID"]);
             foreach (ComboItem item in cmbPersonel.Items)
                 if (item.Id == personelId) { cmbPersonel.SelectedItem = item; break; }
-            dtpTarih.Value = Convert.ToDateTime(r["Tarih"]);
+
+            var tarihVal = Convert.ToDateTime(r["Tarih"]);
+            numGun.Value        = tarihVal.Day;
+            cmbAy.SelectedIndex = tarihVal.Month - 1;
+            numYil.Value        = tarihVal.Year;
+
             cmbMazeret.SelectedItem = r["MazeretTuru"].ToString();
             txtAciklama.Text = r["Aciklama"]?.ToString() ?? "";
 
@@ -129,10 +149,14 @@ namespace SinavTakipApp.Forms
             object oturumId = chkTumGun.Checked ? (object)DBNull.Value
                 : ((ComboItem)cmbOturum.SelectedItem).Id;
 
+            DateTime tarih;
+            try { tarih = new DateTime((int)numYil.Value, cmbAy.SelectedIndex + 1, (int)numGun.Value); }
+            catch { MessageBox.Show("Gecersiz tarih! Gun/ay/yil degerlerini kontrol edin.", "Hata"); return; }
+
             var ps = new[]
             {
                 new SqlParameter("@pid",  personelId),
-                new SqlParameter("@t",    dtpTarih.Value.Date),
+                new SqlParameter("@t",    tarih),
                 new SqlParameter("@oid",  oturumId),
                 new SqlParameter("@mt",   cmbMazeret.SelectedItem.ToString()),
                 new SqlParameter("@ac",   string.IsNullOrWhiteSpace(txtAciklama.Text)

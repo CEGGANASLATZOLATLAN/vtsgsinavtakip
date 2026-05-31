@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -8,9 +7,6 @@ namespace SinavTakipApp
 {
     static class Program
     {
-        [DllImport("kernel32.dll")] private static extern bool SetThreadLocale(uint Locale);
-        [DllImport("kernel32.dll")] private static extern ushort SetThreadUILanguage(ushort LangId);
-
         [STAThread]
         static void Main()
         {
@@ -23,10 +19,6 @@ namespace SinavTakipApp
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
-            // EnableVisualStyles sonrasi tekrar set et — bazi Windows versiyonlarinda sifirlanir
-            SetThreadLocale(1055);       // tr-TR LCID
-            SetThreadUILanguage(0x041F); // tr-TR LangId
 
             if (!DatabaseHelper.TestConnection())
             {

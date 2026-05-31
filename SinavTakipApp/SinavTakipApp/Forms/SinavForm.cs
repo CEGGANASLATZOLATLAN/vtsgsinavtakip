@@ -10,7 +10,7 @@ namespace SinavTakipApp.Forms
     public class SinavForm : Form
     {
         private ComboBox cmbDers, cmbOturum;
-        private DateTimePicker dtpTarih;
+        private NumericUpDown numGun, numYil; private ComboBox cmbAy;
         private Button btnKaydet, btnIptal;
         private Label lblUyari;
 
@@ -31,15 +31,32 @@ namespace SinavTakipApp.Forms
                 Controls.Add(ctrl); y += 40;
             }
 
-            cmbDers    = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 580 };
-            dtpTarih   = new DateTimePicker { Format = DateTimePickerFormat.Short, Value = DateTime.Today };
-            cmbOturum  = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbDers   = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 580 };
+            cmbOturum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+
+            // Turkce gun/ay/yil kontrolleri (DateTimePicker yerine)
+            numGun = new NumericUpDown { Minimum = 1, Maximum = 31, Value = DateTime.Today.Day,
+                Width = 55, ThousandsSeparator = false };
+            numYil = new NumericUpDown { Minimum = 2024, Maximum = 2035, Value = DateTime.Today.Year,
+                Width = 70, ThousandsSeparator = false };
+            cmbAy  = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
+            cmbAy.Items.AddRange(new object[] {
+                "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık" });
+            cmbAy.SelectedIndex = DateTime.Today.Month - 1;
 
             LoadDersler();
             LoadOturumlar();
 
             AddRow("Ders:", cmbDers);
-            AddRow("Sinav Tarihi:", dtpTarih);
+
+            // Tarih satiri: gun | ay | yil
+            Controls.Add(new Label { Text = "Sinav Tarihi:", Location = new Point(15, y + 3), AutoSize = true });
+            numGun.Location = new Point(150, y);
+            cmbAy.Location  = new Point(150 + 60, y);
+            numYil.Location = new Point(150 + 60 + 135, y);
+            Controls.AddRange(new Control[] { numGun, cmbAy, numYil }); y += 40;
+
             AddRow("Oturum:", cmbOturum);
 
             lblUyari = new Label
@@ -59,9 +76,11 @@ namespace SinavTakipApp.Forms
             btnKaydet.Click += BtnKaydet_Click;
             AcceptButton = btnKaydet; CancelButton = btnIptal;
 
-            // Ders degistiginde UDF ile gunluk limit kontrolu goster
+            // Ders veya tarih degistiginde UDF ile gunluk limit kontrolu goster
             cmbDers.SelectedIndexChanged += CheckDailyLimit;
-            dtpTarih.ValueChanged += CheckDailyLimit;
+            numGun.ValueChanged          += CheckDailyLimit;
+            cmbAy.SelectedIndexChanged   += CheckDailyLimit;
+            numYil.ValueChanged          += CheckDailyLimit;
         }
 
         private void LoadDersler()
@@ -92,8 +111,11 @@ namespace SinavTakipApp.Forms
             try
             {
                 // UDF: fn_SinifGunlukSinavSayisi ile kontrol
-                var dersId  = ((ComboItem)cmbDers.SelectedItem).Id;
-                var tarih   = dtpTarih.Value.Date;
+                var dersId = ((ComboItem)cmbDers.SelectedItem).Id;
+                DateTime tarih;
+                try { tarih = new DateTime((int)numYil.Value, cmbAy.SelectedIndex + 1, (int)numGun.Value); }
+                catch { return; }
+
                 var yariyil = DatabaseHelper.Scalar(
                     "SELECT Yariyil FROM Dersler WHERE DersID=@id",
                     new[] { new SqlParameter("@id", dersId) });
@@ -122,7 +144,9 @@ namespace SinavTakipApp.Forms
 
             int dersId   = ((ComboItem)cmbDers.SelectedItem).Id;
             int oturumId = ((ComboItem)cmbOturum.SelectedItem).Id;
-            var tarih    = dtpTarih.Value.Date;
+            DateTime tarih;
+            try { tarih = new DateTime((int)numYil.Value, cmbAy.SelectedIndex + 1, (int)numGun.Value); }
+            catch { MessageBox.Show("Gecersiz tarih! Gun/ay/yil degerlerini kontrol edin.", "Hata"); return; }
 
             using (var conn = DatabaseHelper.GetConnection())
             using (var cmd = new SqlCommand("dbo.sp_SinavOlustur", conn))
