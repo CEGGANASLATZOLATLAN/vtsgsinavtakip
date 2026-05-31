@@ -10,6 +10,7 @@ namespace SinavTakipApp.Forms
     {
         private ComboBox cmbPersonel, cmbOturum, cmbMazeret;
         private NumericUpDown numGun, numYil; private ComboBox cmbAy;
+        private Label lblGunAdi;
         private TextBox txtAciklama;
         private CheckBox chkTumGun;
         private Button btnKaydet, btnIptal;
@@ -18,7 +19,7 @@ namespace SinavTakipApp.Forms
         public PersonelDurumForm()
         {
             Text = "Personel Mazeret / Uygunsuzluk";
-            Size = new Size(420, 340);
+            Size = new Size(500, 340);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
@@ -28,14 +29,14 @@ namespace SinavTakipApp.Forms
             void AddRow(string label, Control ctrl)
             {
                 Controls.Add(new Label { Text = label, Location = new Point(15, y + 3), AutoSize = true });
-                ctrl.Location = new Point(140, y); ctrl.Width = 250;
+                ctrl.Location = new Point(140, y); ctrl.Width = 330;
                 Controls.Add(ctrl); y += 38;
             }
 
             cmbPersonel = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
             LoadPersonel();
 
-            // Turkce gun/ay/yil kontrolleri (DateTimePicker yerine)
+            // Turkce gun/ay/yil kontrolleri
             numGun = new NumericUpDown { Minimum = 1, Maximum = 31, Value = DateTime.Today.Day,
                 Width = 50, ThousandsSeparator = false };
             numYil = new NumericUpDown { Minimum = 2024, Maximum = 2035, Value = DateTime.Today.Year,
@@ -45,6 +46,13 @@ namespace SinavTakipApp.Forms
                 "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
                 "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık" });
             cmbAy.SelectedIndex = DateTime.Today.Month - 1;
+
+            lblGunAdi = new Label
+            {
+                AutoSize  = true,
+                Font      = new Font("Segoe UI", 9f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 100, 180)
+            };
 
             chkTumGun = new CheckBox { Text = "Tum Gun", Checked = true, Width = 100 };
             cmbOturum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Enabled = false };
@@ -58,35 +66,65 @@ namespace SinavTakipApp.Forms
 
             AddRow("Personel:", cmbPersonel);
 
-            // Tarih satiri: gun | ay | yil
+            // Tarih satiri: gun | ay | yil | gun-adi
             Controls.Add(new Label { Text = "Tarih:", Location = new Point(15, y + 3), AutoSize = true });
-            numGun.Location = new Point(140, y);
-            cmbAy.Location  = new Point(140 + 55, y);
-            numYil.Location = new Point(140 + 55 + 125, y);
-            Controls.AddRange(new Control[] { numGun, cmbAy, numYil }); y += 38;
+            numGun.Location    = new Point(140, y);
+            cmbAy.Location     = new Point(140 + 55, y);
+            numYil.Location    = new Point(140 + 55 + 125, y);
+            lblGunAdi.Location = new Point(140 + 55 + 125 + 70, y + 4);
+            Controls.AddRange(new Control[] { numGun, cmbAy, numYil, lblGunAdi }); y += 38;
 
             Controls.Add(new Label { Text = "Tum Gun:", Location = new Point(15, y + 3), AutoSize = true });
             chkTumGun.Location = new Point(140, y);
             Controls.Add(chkTumGun); y += 30;
 
             Controls.Add(new Label { Text = "Oturum:", Location = new Point(15, y + 3), AutoSize = true });
-            cmbOturum.Location = new Point(140, y); cmbOturum.Width = 250;
+            cmbOturum.Location = new Point(140, y); cmbOturum.Width = 330;
             Controls.Add(cmbOturum); y += 38;
 
             AddRow("Mazeret Turu:", cmbMazeret);
 
             Controls.Add(new Label { Text = "Aciklama:", Location = new Point(15, y + 3), AutoSize = true });
-            txtAciklama.Location = new Point(140, y); txtAciklama.Width = 250;
+            txtAciklama.Location = new Point(140, y); txtAciklama.Width = 330;
             Controls.Add(txtAciklama); y += 60;
 
             chkTumGun.CheckedChanged += (s, e) => cmbOturum.Enabled = !chkTumGun.Checked;
 
-            btnKaydet = new Button { Text = "Kaydet", Location = new Point(225, y + 5), Width = 75,
+            // Tarih degisince max gun guncelle + gun adi goster
+            numGun.ValueChanged        += UpdateDateControls;
+            cmbAy.SelectedIndexChanged += UpdateDateControls;
+            numYil.ValueChanged        += UpdateDateControls;
+
+            btnKaydet = new Button { Text = "Kaydet", Location = new Point(310, y + 5), Width = 75,
                 BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnIptal  = new Button { Text = "Iptal",  Location = new Point(310, y + 5), Width = 65, DialogResult = DialogResult.Cancel };
+            btnIptal  = new Button { Text = "Iptal",  Location = new Point(395, y + 5), Width = 65, DialogResult = DialogResult.Cancel };
             Controls.AddRange(new Control[] { btnKaydet, btnIptal });
             btnKaydet.Click += BtnKaydet_Click;
             AcceptButton = btnKaydet; CancelButton = btnIptal;
+
+            UpdateDateControls(null, EventArgs.Empty);
+        }
+
+        // Ayin gun sayisina gore numGun.Maximum gunceller ve secilen gun adini gosterir
+        private void UpdateDateControls(object sender, EventArgs e)
+        {
+            if (cmbAy.SelectedIndex < 0) return;
+            try
+            {
+                int ay  = cmbAy.SelectedIndex + 1;
+                int yil = (int)numYil.Value;
+                int maxGun = DateTime.DaysInMonth(yil, ay);
+                if (numGun.Maximum != maxGun) numGun.Maximum = maxGun;
+            }
+            catch { }
+
+            try
+            {
+                var tarih = new DateTime((int)numYil.Value, cmbAy.SelectedIndex + 1, (int)numGun.Value);
+                string[] gunler = { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
+                lblGunAdi.Text = gunler[(int)tarih.DayOfWeek];
+            }
+            catch { lblGunAdi.Text = ""; }
         }
 
         private void LoadPersonel()
@@ -122,6 +160,7 @@ namespace SinavTakipApp.Forms
             numGun.Value        = tarihVal.Day;
             cmbAy.SelectedIndex = tarihVal.Month - 1;
             numYil.Value        = tarihVal.Year;
+            UpdateDateControls(null, EventArgs.Empty);
 
             cmbMazeret.SelectedItem = r["MazeretTuru"].ToString();
             txtAciklama.Text = r["Aciklama"]?.ToString() ?? "";

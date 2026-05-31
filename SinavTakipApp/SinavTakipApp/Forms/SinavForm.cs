@@ -11,6 +11,7 @@ namespace SinavTakipApp.Forms
     {
         private ComboBox cmbDers, cmbOturum;
         private NumericUpDown numGun, numYil; private ComboBox cmbAy;
+        private Label lblGunAdi;
         private Button btnKaydet, btnIptal;
         private Label lblUyari;
 
@@ -34,7 +35,7 @@ namespace SinavTakipApp.Forms
             cmbDers   = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 580 };
             cmbOturum = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
 
-            // Turkce gun/ay/yil kontrolleri (DateTimePicker yerine)
+            // Turkce gun/ay/yil kontrolleri
             numGun = new NumericUpDown { Minimum = 1, Maximum = 31, Value = DateTime.Today.Day,
                 Width = 55, ThousandsSeparator = false };
             numYil = new NumericUpDown { Minimum = 2024, Maximum = 2035, Value = DateTime.Today.Year,
@@ -45,27 +46,35 @@ namespace SinavTakipApp.Forms
                 "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık" });
             cmbAy.SelectedIndex = DateTime.Today.Month - 1;
 
+            lblGunAdi = new Label
+            {
+                AutoSize  = true,
+                Font      = new Font("Segoe UI", 9f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 100, 180)
+            };
+
             LoadDersler();
             LoadOturumlar();
 
             AddRow("Ders:", cmbDers);
 
-            // Tarih satiri: gun | ay | yil
+            // Tarih satiri: gun | ay | yil | gun-adi
             Controls.Add(new Label { Text = "Sinav Tarihi:", Location = new Point(15, y + 3), AutoSize = true });
-            numGun.Location = new Point(150, y);
-            cmbAy.Location  = new Point(150 + 60, y);
-            numYil.Location = new Point(150 + 60 + 135, y);
-            Controls.AddRange(new Control[] { numGun, cmbAy, numYil }); y += 40;
+            numGun.Location    = new Point(150, y);
+            cmbAy.Location     = new Point(150 + 60, y);
+            numYil.Location    = new Point(150 + 60 + 135, y);
+            lblGunAdi.Location = new Point(150 + 60 + 135 + 75, y + 4);
+            Controls.AddRange(new Control[] { numGun, cmbAy, numYil, lblGunAdi }); y += 40;
 
             AddRow("Oturum:", cmbOturum);
 
             lblUyari = new Label
             {
-                Location = new Point(15, y),
-                Size = new Size(600, 50),
+                Location  = new Point(15, y),
+                Size      = new Size(600, 50),
                 ForeColor = Color.FromArgb(255, 100, 0),
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                Text = ""
+                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Text      = ""
             };
             Controls.Add(lblUyari); y += 55;
 
@@ -76,11 +85,40 @@ namespace SinavTakipApp.Forms
             btnKaydet.Click += BtnKaydet_Click;
             AcceptButton = btnKaydet; CancelButton = btnIptal;
 
-            // Ders veya tarih degistiginde UDF ile gunluk limit kontrolu goster
+            // Tarih degisince max gun guncelle + gun adi goster (once)
+            numGun.ValueChanged        += UpdateDateControls;
+            cmbAy.SelectedIndexChanged += UpdateDateControls;
+            numYil.ValueChanged        += UpdateDateControls;
+
+            // Ders veya tarih degisince UDF limit kontrolu
             cmbDers.SelectedIndexChanged += CheckDailyLimit;
             numGun.ValueChanged          += CheckDailyLimit;
             cmbAy.SelectedIndexChanged   += CheckDailyLimit;
             numYil.ValueChanged          += CheckDailyLimit;
+
+            UpdateDateControls(null, EventArgs.Empty);
+        }
+
+        // Ayin gun sayisina gore numGun.Maximum gunceller ve secilen gun adini gosterir
+        private void UpdateDateControls(object sender, EventArgs e)
+        {
+            if (cmbAy.SelectedIndex < 0) return;
+            try
+            {
+                int ay  = cmbAy.SelectedIndex + 1;
+                int yil = (int)numYil.Value;
+                int maxGun = DateTime.DaysInMonth(yil, ay);
+                if (numGun.Maximum != maxGun) numGun.Maximum = maxGun;
+            }
+            catch { }
+
+            try
+            {
+                var tarih = new DateTime((int)numYil.Value, cmbAy.SelectedIndex + 1, (int)numGun.Value);
+                string[] gunler = { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
+                lblGunAdi.Text = gunler[(int)tarih.DayOfWeek];
+            }
+            catch { lblGunAdi.Text = ""; }
         }
 
         private void LoadDersler()
