@@ -25,44 +25,51 @@ namespace SinavTakipApp.Forms
         private void InitializeForm()
         {
             Text = "Gozetmen Atama";
-            Size = new Size(1000, 680);
+            Size = new Size(1150, 680);
             StartPosition = FormStartPosition.CenterParent;
             Font = new Font("Segoe UI", 9f);
 
             lblSinavBilgi = new Label
             {
                 Location = new Point(10, 10),
-                Size = new Size(960, 45),
+                Size = new Size(1110, 45),
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(0, 70, 140)
             };
             Controls.Add(lblSinavBilgi);
 
             // Sol: Sinav Salonlari
-            var grpSalon = new GroupBox { Text = "Sinav Salonlari", Location = new Point(10, 60), Size = new Size(300, 520) };
-            dgvSalonlar = BuildDgv(new Size(280, 480), new Point(5, 20));
+            var grpSalon = new GroupBox { Text = "Sinav Salonlari", Location = new Point(10, 60), Size = new Size(270, 520) };
+            dgvSalonlar = BuildDgv(new Size(250, 480), new Point(5, 20));
             grpSalon.Controls.Add(dgvSalonlar);
             Controls.Add(grpSalon);
             dgvSalonlar.SelectionChanged += (s, e) => LoadGozetmenler();
 
             // Orta: Musait Gozetmenler (sp_AdilGozetmenListele - SP cagrisi)
-            var grpMusait = new GroupBox { Text = "Musait Gozetmenler (Bolum + Havuz)", Location = new Point(320, 60), Size = new Size(340, 520) };
-            lblHavuz = new Label { Text = "Bolum = mavi, Havuz = gri", Location = new Point(5, 18), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 7.5f) };
-            dgvGozetmenler = BuildDgv(new Size(320, 455), new Point(5, 40));
+            var grpMusait = new GroupBox { Text = "Musait Gozetmenler (once bolum, yetmezse havuz)", Location = new Point(290, 60), Size = new Size(500, 520) };
+            lblHavuz = new Label
+            {
+                Text = "Mavi = bolum gozetmeni  |  Gri = fakülte havuzu  |  Kirmizi = mazeretli\n" +
+                       "Not: Bolumde musait gozetmen varken havuzdan atama yapilamaz.",
+                Location = new Point(5, 16), AutoSize = true,
+                ForeColor = Color.FromArgb(80, 80, 80),
+                Font = new Font("Segoe UI", 7.5f)
+            };
+            dgvGozetmenler = BuildDgv(new Size(480, 450), new Point(5, 48));
             grpMusait.Controls.AddRange(new Control[] { lblHavuz, dgvGozetmenler });
             Controls.Add(grpMusait);
 
             // Sag: Mevcut Atamalar
-            var grpMevcut = new GroupBox { Text = "Bu Sinava Atanmis Gozetmenler", Location = new Point(670, 60), Size = new Size(300, 520) };
-            dgvMevcutAtamalar = BuildDgv(new Size(280, 480), new Point(5, 20));
+            var grpMevcut = new GroupBox { Text = "Bu Sinava Atanmis Gozetmenler", Location = new Point(800, 60), Size = new Size(330, 520) };
+            dgvMevcutAtamalar = BuildDgv(new Size(310, 480), new Point(5, 20));
             grpMevcut.Controls.Add(dgvMevcutAtamalar);
             Controls.Add(grpMevcut);
 
-            btnAta = new Button { Text = "Gozetmen Ata ->", Location = new Point(320, 590), Width = 150, Height = 34,
+            btnAta = new Button { Text = "Gozetmen Ata ->", Location = new Point(290, 590), Width = 160, Height = 34,
                 BackColor = Color.FromArgb(0,123,255), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnKaldir = new Button { Text = "<- Atama Kaldir", Location = new Point(480, 590), Width = 150, Height = 34,
+            btnKaldir = new Button { Text = "<- Atama Kaldir", Location = new Point(460, 590), Width = 160, Height = 34,
                 BackColor = Color.FromArgb(220,53,69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnKapat  = new Button { Text = "Kapat", Location = new Point(870, 590), Width = 100, Height = 34, DialogResult = DialogResult.OK };
+            btnKapat  = new Button { Text = "Kapat", Location = new Point(1020, 590), Width = 100, Height = 34, DialogResult = DialogResult.OK };
 
             btnAta.Click    += BtnAta_Click;
             btnKaldir.Click += BtnKaldir_Click;
@@ -185,6 +192,29 @@ namespace SinavTakipApp.Forms
             {
                 if (MessageBox.Show("Bu personel mazeretli! Yine de atamak istiyor musunuz?",
                     "Uyari", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            }
+
+            // Havuz kisitlamasi: bolumde musait gozetmen varken havuzdan atama yapilamaz
+            string kaynak = gozetmenRow.Cells["Kaynak"].Value?.ToString() ?? "";
+            if (kaynak == "Havuz")
+            {
+                bool bolumMusaitVar = false;
+                foreach (DataGridViewRow r in dgvGozetmenler.Rows)
+                {
+                    if (r.IsNewRow) continue;
+                    string k = r.Cells["Kaynak"].Value?.ToString() ?? "";
+                    bool m   = r.Cells["Musait"].Value != null && Convert.ToBoolean(r.Cells["Musait"].Value);
+                    if (k == "Bolum" && m) { bolumMusaitVar = true; break; }
+                }
+                if (bolumMusaitVar)
+                {
+                    MessageBox.Show(
+                        "Bolumde hala musait gozetmen var!\n\n" +
+                        "Once bolum gozetmenlerini atayiniz.\n" +
+                        "Bolumde musait gozetmen kalmadiktan sonra\nhavuzdan atama yapilabilir.",
+                        "Uyari", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
             int sinavSalonId = Convert.ToInt32(salonRow.Cells["SinavSalonID"].Value);
