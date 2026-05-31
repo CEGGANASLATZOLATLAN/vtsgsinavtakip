@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace SinavTakipApp
@@ -8,6 +10,11 @@ namespace SinavTakipApp
         [STAThread]
         static void Main()
         {
+            // Tum tarih/saat gosterimlerini Turkce yap
+            var trTR = new CultureInfo("tr-TR");
+            Thread.CurrentThread.CurrentCulture   = trTR;
+            Thread.CurrentThread.CurrentUICulture = trTR;
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
