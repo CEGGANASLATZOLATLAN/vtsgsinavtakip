@@ -83,6 +83,8 @@ namespace SinavTakipApp.Forms
             SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false,
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
             BackgroundColor = Color.White, RowHeadersVisible = false,
+            Font = new Font("Segoe UI", 10f),
+            RowTemplate = { Height = 28 },
             AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(245, 247, 255) }
         };
 
