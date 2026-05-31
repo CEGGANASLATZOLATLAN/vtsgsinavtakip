@@ -414,22 +414,13 @@ namespace SinavTakipApp.Forms
             panel.Controls.Add(btnPanel);
             tabRaporlar.Controls.Add(panel);
 
-            btnRaporProgram.Click += (s, e) =>
-            {
-                try
-                {
-                    dgvRapor.DataSource = DatabaseHelper.Query(
-                        "SELECT Tarih, Gun, Oturum, BaslangicSaat, BitisSaat, DersKodu, DersAdi, " +
-                        "DersTuru, Yariyil, OgrenciSayisi, AtananKapasite, Salonlar, BolumAdi " +
-                        "FROM v_SinavProgrami ORDER BY Tarih, BaslangicSaat");
-                }
-                catch (Exception ex) { DatabaseHelper.ShowError("Rapor hatasi", ex); }
-            };
+            btnRaporProgram.Click += (s, e) => BuildSinavProgramiPivot();
 
             btnRaporGozetmen.Click += (s, e) =>
             {
                 try
                 {
+                    ResetDgvStyle();
                     dgvRapor.DataSource = DatabaseHelper.Query(
                         "SELECT PersonelAdi, PersonelBolumu, Tarih, Gun, Oturum, BaslangicSaat, " +
                         "DersAdi, Yariyil, DersBolumu, DerslikAdi " +
@@ -442,6 +433,7 @@ namespace SinavTakipApp.Forms
             {
                 try
                 {
+                    ResetDgvStyle();
                     dgvRapor.DataSource = DatabaseHelper.Query(
                         "SELECT PersonelAdi, BolumAdi, ToplamGorev, SonBirAydaGorev " +
                         "FROM v_GozetmenIstatistik ORDER BY ToplamGorev DESC, PersonelAdi");
@@ -469,6 +461,155 @@ namespace SinavTakipApp.Forms
                         "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
+        }
+
+        // Diger raporlar icin dgvRapor stilini sifirla
+        private void ResetDgvStyle()
+        {
+            dgvRapor.AutoSizeColumnsMode       = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvRapor.RowTemplate.Height        = 22;
+            dgvRapor.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            dgvRapor.DefaultCellStyle.Padding  = new Padding(2);
+            dgvRapor.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvRapor.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        }
+
+        // Sinav Programi: Oturum x Derslik satirlari, tarih sutunlari (pivot)
+        private void BuildSinavProgramiPivot()
+        {
+            try
+            {
+                var flat = DatabaseHelper.Query(
+                    "SELECT sv.Tarih, o.Tanim AS Oturum, dk.Ad AS DerslikAdi, " +
+                    "d.DersKodu + N' - ' + d.Ad AS DersAdi, " +
+                    "ISNULL(p.Unvan + N' ' + p.Soyad, N'') AS GozetmenAdi " +
+                    "FROM Sinav_Salonlari ss " +
+                    "JOIN Sinavlar sv ON ss.SinavID = sv.SinavID " +
+                    "JOIN Dersler d  ON sv.DersID   = d.DersID " +
+                    "JOIN Derslikler dk ON ss.DerslikID = dk.DerslikID " +
+                    "JOIN Oturumlar o   ON sv.OturumID  = o.OturumID " +
+                    "LEFT JOIN Gozetmen_Atamalari ga ON ga.SinavSalonID = ss.SinavSalonID " +
+                    "LEFT JOIN Personel p ON ga.PersonelID = p.PersonelID " +
+                    "ORDER BY sv.Tarih, o.BaslangicSaat, dk.Ad");
+
+                if (flat.Rows.Count == 0)
+                {
+                    dgvRapor.DataSource = null;
+                    dgvRapor.Columns.Clear();
+                    MessageBox.Show("Henuz sinav salonu atamasi yapilmamis.", "Bilgi");
+                    return;
+                }
+
+                // --- Distinct tarihler (ekleme sirasi korunarak) ---
+                var tarihler = new System.Collections.Generic.List<DateTime>();
+                var tarihSet = new System.Collections.Generic.HashSet<long>();
+                foreach (DataRow r in flat.Rows)
+                {
+                    long tick = Convert.ToDateTime(r["Tarih"]).Date.Ticks;
+                    if (tarihSet.Add(tick)) tarihler.Add(new DateTime(tick));
+                }
+
+                // --- Distinct (Oturum|Derslik) satirlari ---
+                var satirKeys = new System.Collections.Generic.List<string>();
+                var satirMap  = new System.Collections.Generic.Dictionary<string, string[]>();
+                foreach (DataRow r in flat.Rows)
+                {
+                    string key = r["Oturum"] + "|||" + r["DerslikAdi"];
+                    if (!satirMap.ContainsKey(key))
+                    {
+                        satirKeys.Add(key);
+                        satirMap[key] = new[] { r["Oturum"].ToString(), r["DerslikAdi"].ToString() };
+                    }
+                }
+
+                // --- Pivot sozlugu: satirKey -> (tarihTick -> hucreMeti) ---
+                var pivotData = new System.Collections.Generic.Dictionary<string,
+                    System.Collections.Generic.Dictionary<long, string>>();
+                foreach (var key in satirKeys)
+                    pivotData[key] = new System.Collections.Generic.Dictionary<long, string>();
+
+                foreach (DataRow r in flat.Rows)
+                {
+                    string key  = r["Oturum"] + "|||" + r["DerslikAdi"];
+                    long   tick = Convert.ToDateTime(r["Tarih"]).Date.Ticks;
+                    string goz  = r["GozetmenAdi"].ToString();
+                    string cell = r["DersAdi"].ToString();
+                    if (!string.IsNullOrEmpty(goz)) cell += "\n" + goz;
+                    if (!pivotData[key].ContainsKey(tick))
+                        pivotData[key][tick] = cell;
+                }
+
+                // --- DataTable kur ---
+                string[] turkAylar  = { "", "Oca", "Şub", "Mar", "Nis", "May", "Haz",
+                                        "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara" };
+                string[] turkGunKisa = { "Paz", "Pts", "Sal", "Çar", "Per", "Cum", "Cts" };
+
+                var dt = new DataTable();
+                dt.Columns.Add("Oturum");
+                dt.Columns.Add("Derslik");
+
+                var colKeys    = new System.Collections.Generic.List<string>();
+                var colHeaders = new System.Collections.Generic.List<string>();
+                foreach (var tarih in tarihler)
+                {
+                    string ck = "T_" + tarih.ToString("yyyyMMdd");
+                    colKeys.Add(ck);
+                    colHeaders.Add(tarih.Day.ToString("D2") + " " + turkAylar[tarih.Month]
+                                   + "  " + turkGunKisa[(int)tarih.DayOfWeek]);
+                    dt.Columns.Add(ck);
+                }
+
+                foreach (var key in satirKeys)
+                {
+                    var row      = dt.NewRow();
+                    row["Oturum"]  = satirMap[key][0];
+                    row["Derslik"] = satirMap[key][1];
+                    var cells = pivotData[key];
+                    for (int i = 0; i < tarihler.Count; i++)
+                    {
+                        if (cells.ContainsKey(tarihler[i].Ticks))
+                            row[colKeys[i]] = cells[tarihler[i].Ticks];
+                    }
+                    dt.Rows.Add(row);
+                }
+
+                // --- DataGridView'e bagla ---
+                dgvRapor.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+                dgvRapor.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+                dgvRapor.ColumnHeadersHeight = 36;
+                dgvRapor.ColumnHeadersDefaultCellStyle.WrapMode  = DataGridViewTriState.False;
+                dgvRapor.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                dgvRapor.DefaultCellStyle.WrapMode    = DataGridViewTriState.True;
+                dgvRapor.DefaultCellStyle.Alignment   = DataGridViewContentAlignment.MiddleLeft;
+                dgvRapor.DefaultCellStyle.Padding     = new Padding(5, 4, 5, 4);
+                dgvRapor.DataSource = dt;
+
+                // Sabit sutunlar
+                dgvRapor.Columns["Oturum"].Width  = 140;
+                dgvRapor.Columns["Derslik"].Width = 75;
+                dgvRapor.Columns["Oturum"].DefaultCellStyle.BackColor  = Color.FromArgb(230, 240, 255);
+                dgvRapor.Columns["Derslik"].DefaultCellStyle.BackColor = Color.FromArgb(230, 240, 255);
+                dgvRapor.Columns["Oturum"].DefaultCellStyle.Font  = new Font("Segoe UI", 9f, FontStyle.Bold);
+                dgvRapor.Columns["Derslik"].DefaultCellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
+
+                // Tarih sutunlari (iki renk dongusu)
+                Color[] tarihRenk = { Color.White, Color.FromArgb(245, 248, 255) };
+                for (int i = 0; i < tarihler.Count; i++)
+                {
+                    var col = dgvRapor.Columns[colKeys[i]];
+                    col.Width      = 215;
+                    col.HeaderText = colHeaders[i];
+                    col.DefaultCellStyle.BackColor = tarihRenk[i % 2];
+                }
+
+                // Satir yuksekligi
+                dgvRapor.RowTemplate.Height = 50;
+                foreach (DataGridViewRow row in dgvRapor.Rows)
+                    row.Height = 50;
+
+                dgvRapor.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle();
+            }
+            catch (Exception ex) { DatabaseHelper.ShowError("Rapor hatasi", ex); }
         }
     }
 }
