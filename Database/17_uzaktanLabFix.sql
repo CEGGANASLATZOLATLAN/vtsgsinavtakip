@@ -132,6 +132,103 @@ BEGIN
 END
 GO
 
+-- ============================================================
+-- sp_GozetmenAta: Bir salona maksimum 1 gozetmen kurali eklendi
+-- ============================================================
+ALTER PROCEDURE dbo.sp_GozetmenAta
+    @SinavSalonID INT,
+    @PersonelID   INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Tarih DATE, @OturumID INT, @SinavID INT;
+    SELECT @Tarih    = sv.Tarih,
+           @OturumID = sv.OturumID,
+           @SinavID  = ss.SinavID
+    FROM Sinav_Salonlari ss
+    JOIN Sinavlar sv ON ss.SinavID = sv.SinavID
+    WHERE ss.SinavSalonID = @SinavSalonID;
+
+    IF @Tarih IS NULL
+    BEGIN RAISERROR(N'Sinav salonu bulunamadi.', 16, 1); RETURN; END
+
+    -- Kural 3: Bir salona maksimum 1 gozetmen atanabilir
+    IF EXISTS (SELECT 1 FROM Gozetmen_Atamalari WHERE SinavSalonID = @SinavSalonID)
+    BEGIN
+        RAISERROR(N'KURAL 3 - Salon Limiti: Bu salona zaten bir gozetmen atanmis! Her salona maksimum 1 gozetmen atanabilir.', 16, 1); RETURN;
+    END
+
+    -- Kural 7: Mazeret kontrolu
+    IF dbo.fn_GozetmenMuzaitMi(@PersonelID, @Tarih, @OturumID) = 0
+    BEGIN
+        RAISERROR(N'KURAL 7 - Mazeret: Bu personel belirtilen tarih/oturumda mazeretli!', 16, 1); RETURN;
+    END
+
+    -- Kural 5: Ayni anda baska sinavda gozetmen mi?
+    IF EXISTS (
+        SELECT 1
+        FROM Gozetmen_Atamalari ga
+        JOIN Sinav_Salonlari ss2 ON ga.SinavSalonID = ss2.SinavSalonID
+        JOIN Sinavlar sv2 ON ss2.SinavID = sv2.SinavID
+        WHERE ga.PersonelID   = @PersonelID
+          AND sv2.Tarih       = @Tarih
+          AND sv2.OturumID    = @OturumID
+          AND ga.SinavSalonID <> @SinavSalonID
+    )
+    BEGIN
+        RAISERROR(N'KURAL 5 - Cakisma: Bu personel ayni oturumda baska sinavda gozetmen!', 16, 1); RETURN;
+    END
+
+    -- Kural 6: Gunluk max 4 oturum
+    DECLARE @GunlukOturum INT;
+    SELECT @GunlukOturum = COUNT(DISTINCT sv3.OturumID)
+    FROM Gozetmen_Atamalari ga3
+    JOIN Sinav_Salonlari ss3 ON ga3.SinavSalonID = ss3.SinavSalonID
+    JOIN Sinavlar sv3 ON ss3.SinavID = sv3.SinavID
+    WHERE ga3.PersonelID = @PersonelID
+      AND sv3.Tarih      = @Tarih;
+
+    IF @GunlukOturum >= 4
+    BEGIN
+        RAISERROR(N'KURAL 6 - Gunluk Limit: Bu personel bugun zaten 4 oturumda gorevli!', 16, 1); RETURN;
+    END
+
+    -- Kural 9: Ardisik max 3 oturum
+    ;WITH SiraOturum AS (
+        SELECT OturumID, ROW_NUMBER() OVER (ORDER BY BaslangicSaat) AS SiraNo
+        FROM Oturumlar
+    ),
+    MevcutAtamalar AS (
+        SELECT so.SiraNo
+        FROM Gozetmen_Atamalari ga
+        JOIN Sinav_Salonlari ss3 ON ga.SinavSalonID = ss3.SinavSalonID
+        JOIN Sinavlar sv3 ON ss3.SinavID = sv3.SinavID
+        JOIN SiraOturum so ON sv3.OturumID = so.OturumID
+        WHERE ga.PersonelID = @PersonelID AND sv3.Tarih = @Tarih
+        UNION
+        SELECT SiraNo FROM SiraOturum WHERE OturumID = @OturumID
+    )
+    SELECT TOP 1 @SinavSalonID = @SinavSalonID
+    FROM MevcutAtamalar m1
+    WHERE EXISTS (SELECT 1 FROM MevcutAtamalar m2 WHERE m2.SiraNo = m1.SiraNo + 1)
+      AND EXISTS (SELECT 1 FROM MevcutAtamalar m3 WHERE m3.SiraNo = m1.SiraNo + 2)
+      AND EXISTS (SELECT 1 FROM MevcutAtamalar m4 WHERE m4.SiraNo = m1.SiraNo + 3);
+
+    IF @@ROWCOUNT > 0
+    BEGIN
+        RAISERROR(N'KURAL 9 - Ardisik Sinir: Bu personel 3 art arda oturumda gorevli, 4. arda atanamaz!', 16, 1); RETURN;
+    END
+
+    -- Kaydet
+    INSERT INTO Gozetmen_Atamalari (SinavSalonID, PersonelID)
+    VALUES (@SinavSalonID, @PersonelID);
+
+    SELECT N'Gozetmen basariyla atandi.' AS Sonuc;
+END
+GO
+
 PRINT '17_uzaktanLabFix.sql tamamlandi.';
-PRINT 'sp_AkilliSalonAta: OgrenciSayisi=0 durumu artik SALON_GEREKMIYOR mesajiyla ele aliniyor.';
+PRINT 'sp_AkilliSalonAta: optimize edilmis salon secim algoritmasi.';
+PRINT 'sp_GozetmenAta   : maksimum 1 gozetmen per salon kurali eklendi.';
 GO

@@ -187,6 +187,15 @@ namespace SinavTakipApp.Forms
             if (salonRow == null)    { MessageBox.Show("Sol listeden bir salon secin."); return; }
             if (gozetmenRow == null) { MessageBox.Show("Ortadaki listeden bir gozetmen secin."); return; }
 
+            // Salona zaten gozetmen atanmis mi?
+            int gozetmenSayisi = Convert.ToInt32(salonRow.Cells["GozetmenSayisi"].Value);
+            if (gozetmenSayisi >= 1)
+            {
+                MessageBox.Show("Bu salona zaten bir gozetmen atanmis!\nOnce mevcut atamay kaldirip yeniden atayabilirsiniz.",
+                    "Uyari", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             var musait = gozetmenRow.Cells["Musait"].Value;
             if (musait != null && !Convert.ToBoolean(musait))
             {

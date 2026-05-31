@@ -203,6 +203,12 @@ BEGIN
     IF @Tarih IS NULL
     BEGIN RAISERROR(N'Sinav salonu bulunamadi.', 16, 1); RETURN; END
 
+    -- Kural 3: Bir salona maksimum 1 gozetmen atanabilir
+    IF EXISTS (SELECT 1 FROM Gozetmen_Atamalari WHERE SinavSalonID = @SinavSalonID)
+    BEGIN
+        RAISERROR(N'KURAL 3 - Salon Limiti: Bu salona zaten bir gozetmen atanmis! Her salona maksimum 1 gozetmen atanabilir.', 16, 1); RETURN;
+    END
+
     -- Kural 7: Mazeret kontrolü
     IF dbo.fn_GozetmenMuzaitMi(@PersonelID, @Tarih, @OturumID) = 0
     BEGIN
