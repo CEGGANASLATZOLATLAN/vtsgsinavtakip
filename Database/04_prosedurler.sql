@@ -126,7 +126,9 @@ BEGIN
               AND (@TercihliKat IS NULL OR d.Kat = @TercihliKat)
             ORDER BY
                 CASE d.Tip WHEN N'Amfi' THEN 1 WHEN N'Sinif' THEN 2 ELSE 3 END,
-                d.Kapasite DESC;
+                -- Kalani karsilayan odalar once (kucukten buyuge), karsilamayanlar sonra (buyukten kucuge)
+                CASE WHEN d.Kapasite >= @KalanKapasite THEN 0 ELSE 1 END,
+                CASE WHEN d.Kapasite >= @KalanKapasite THEN d.Kapasite ELSE -d.Kapasite END;
 
             -- Tercihli katta bulunamadiysa tum katlardan sec
             IF @SecilenDerslikID IS NULL AND @TercihliKat IS NOT NULL
@@ -151,7 +153,8 @@ BEGIN
                   AND d.DerslikID NOT IN (SELECT DerslikID FROM ZatenAtananlar)
                 ORDER BY
                     CASE d.Tip WHEN N'Amfi' THEN 1 WHEN N'Sinif' THEN 2 ELSE 3 END,
-                    d.Kapasite DESC;
+                    CASE WHEN d.Kapasite >= @KalanKapasite THEN 0 ELSE 1 END,
+                    CASE WHEN d.Kapasite >= @KalanKapasite THEN d.Kapasite ELSE -d.Kapasite END;
             END
 
             IF @SecilenDerslikID IS NULL
