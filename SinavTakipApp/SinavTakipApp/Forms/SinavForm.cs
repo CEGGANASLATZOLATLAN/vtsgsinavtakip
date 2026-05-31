@@ -69,7 +69,9 @@ namespace SinavTakipApp.Forms
             cmbDers.Items.Clear();
             var dt = DatabaseHelper.Query(
                 "SELECT d.DersID, d.DersKodu+' - '+d.Ad+' ['+d.DersTuru+'] ('+CAST(d.OgrenciSayisi AS NVARCHAR)+' kisi, '+CAST(d.Yariyil AS NVARCHAR)+'. Yariyil) | '+b.BolumAdi AS Ad " +
-                "FROM Dersler d JOIN Bolumler b ON d.BolumID=b.BolumID ORDER BY b.BolumAdi, d.Yariyil, d.DersKodu");
+                "FROM Dersler d JOIN Bolumler b ON d.BolumID=b.BolumID " +
+                "WHERE NOT EXISTS (SELECT 1 FROM Sinavlar sv WHERE sv.DersID = d.DersID) " +
+                "ORDER BY b.BolumAdi, d.Yariyil, d.DersKodu");
             foreach (DataRow row in dt.Rows)
                 cmbDers.Items.Add(new ComboItem(Convert.ToInt32(row["DersID"]), row["Ad"].ToString()));
             if (cmbDers.Items.Count > 0) cmbDers.SelectedIndex = 0;

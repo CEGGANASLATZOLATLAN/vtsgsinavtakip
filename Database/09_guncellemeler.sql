@@ -120,6 +120,13 @@ BEGIN
     SELECT @Yariyil = Yariyil, @BolumID = BolumID
     FROM Dersler WHERE DersID = @DersID;
 
+    -- Kural 0: Her ders icin yalnizca 1 sinav olusturulabilir
+    IF EXISTS (SELECT 1 FROM Sinavlar WHERE DersID = @DersID)
+    BEGIN
+        RAISERROR(N'KURAL 0 - Tekrar: Bu ders icin zaten bir sinav mevcut! Her ders icin yalnizca 1 sinav olusturulabilir.', 16, 1);
+        RETURN;
+    END
+
     -- Kural 1: Ayni BOLUMDE ayni yariyil + ayni oturum + ayni tarih
     IF EXISTS (
         SELECT 1

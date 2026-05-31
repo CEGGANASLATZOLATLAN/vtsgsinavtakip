@@ -228,7 +228,94 @@ BEGIN
 END
 GO
 
+-- ============================================================
+-- sp_SinavOlustur: Her ders icin yalnizca 1 sinav kurali eklendi
+-- ============================================================
+ALTER PROCEDURE dbo.sp_SinavOlustur
+    @DersID      INT,
+    @Tarih       DATE,
+    @OturumID    INT,
+    @SinavID     INT  OUTPUT,
+    @UyariMesaji NVARCHAR(500) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET @SinavID     = NULL;
+    SET @UyariMesaji = N'';
+
+    DECLARE @Yariyil INT, @BolumID INT;
+    SELECT @Yariyil = Yariyil, @BolumID = BolumID
+    FROM Dersler WHERE DersID = @DersID;
+
+    -- Kural 0: Her ders icin yalnizca 1 sinav olusturulabilir
+    IF EXISTS (SELECT 1 FROM Sinavlar WHERE DersID = @DersID)
+    BEGIN
+        RAISERROR(N'KURAL 0 - Tekrar: Bu ders icin zaten bir sinav mevcut! Her ders icin yalnizca 1 sinav olusturulabilir.', 16, 1);
+        RETURN;
+    END
+
+    -- Kural 1: Ayni BOLUMDE ayni yariyil + ayni oturum + ayni tarih
+    IF EXISTS (
+        SELECT 1
+        FROM Sinavlar sv
+        JOIN Dersler d ON sv.DersID = d.DersID
+        WHERE sv.Tarih    = @Tarih
+          AND sv.OturumID = @OturumID
+          AND d.Yariyil   = @Yariyil
+          AND d.BolumID   = @BolumID
+          AND sv.DersID  != @DersID
+    )
+    BEGIN
+        RAISERROR(N'KURAL 1 - Cakisma: Ayni bolumde ayni yariyildaki derslerin sinavlari ayni oturuma konamaz!', 16, 1);
+        RETURN;
+    END
+
+    -- Kural 2a: Oturum boslugu - ayni BOLUMDE bitisik oturum yasak
+    DECLARE @GapIhlal BIT = 0;
+    ;WITH SiraOturum AS (
+        SELECT OturumID, ROW_NUMBER() OVER (ORDER BY BaslangicSaat) AS SiraNo
+        FROM Oturumlar
+    )
+    SELECT TOP 1 @GapIhlal = 1
+    FROM Sinavlar sv
+    JOIN Dersler d ON sv.DersID = d.DersID
+    JOIN SiraOturum so_var  ON sv.OturumID      = so_var.OturumID
+    JOIN SiraOturum so_yeni ON so_yeni.OturumID = @OturumID
+    WHERE sv.Tarih   = @Tarih
+      AND d.Yariyil  = @Yariyil
+      AND d.BolumID  = @BolumID
+      AND sv.DersID != @DersID
+      AND ABS(so_var.SiraNo - so_yeni.SiraNo) = 1;
+
+    IF @GapIhlal = 1
+    BEGIN
+        RAISERROR(N'KURAL 2 - Oturum Boslugu: Ayni bolumde ayni yariyildaki sinavlar arasinda en az 1 oturum boslugu olmali!', 16, 1);
+        RETURN;
+    END
+
+    -- Kural 2b: Gunluk max 2 sinav (ayni bolumde, hard block)
+    DECLARE @GunlukSayi INT;
+    SELECT @GunlukSayi = COUNT(DISTINCT sv.SinavID)
+    FROM Sinavlar sv
+    JOIN Dersler d ON sv.DersID = d.DersID
+    WHERE d.Yariyil = @Yariyil
+      AND d.BolumID = @BolumID
+      AND sv.Tarih  = @Tarih;
+
+    IF @GunlukSayi >= 2
+    BEGIN
+        RAISERROR(N'KURAL 2 - Gunluk Limit: Bu bolumde bu yariyil icin bu gune zaten 2 sinav var, 3. eklenemez!', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Sinavlar (DersID, Tarih, OturumID)
+    VALUES (@DersID, @Tarih, @OturumID);
+    SET @SinavID = SCOPE_IDENTITY();
+END
+GO
+
 PRINT '17_uzaktanLabFix.sql tamamlandi.';
 PRINT 'sp_AkilliSalonAta: optimize edilmis salon secim algoritmasi.';
 PRINT 'sp_GozetmenAta   : maksimum 1 gozetmen per salon kurali eklendi.';
+PRINT 'sp_SinavOlustur  : her ders icin yalnizca 1 sinav kurali eklendi.';
 GO
