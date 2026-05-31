@@ -32,7 +32,7 @@ namespace SinavTakipApp.Forms
             }
 
             cmbDers    = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 580 };
-            dtpTarih   = new DateTimePicker { Format = DateTimePickerFormat.Short, Value = DateTime.Today };
+            dtpTarih   = new DateTimePicker { Format = DateTimePickerFormat.Custom, CustomFormat = "dd MMMM yyyy", Value = DateTime.Today };
             cmbOturum  = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
 
             LoadDersler();

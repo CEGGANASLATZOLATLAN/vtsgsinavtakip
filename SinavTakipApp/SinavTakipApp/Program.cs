@@ -14,6 +14,8 @@ namespace SinavTakipApp
             var trTR = new CultureInfo("tr-TR");
             Thread.CurrentThread.CurrentCulture   = trTR;
             Thread.CurrentThread.CurrentUICulture = trTR;
+            CultureInfo.DefaultThreadCurrentCulture   = trTR;
+            CultureInfo.DefaultThreadCurrentUICulture = trTR;
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
