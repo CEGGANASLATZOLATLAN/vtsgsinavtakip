@@ -79,17 +79,25 @@ derslikler ──< sinav_salonlari
 | `14_schemaDuzelt.sql` | schema düzeltmeleri |
 | `15_bugDuzelt.sql` | canlı db'ye bug düzeltmeleri (veri silmez) |
 | `16_personel.sql` | 45 akademik personel |
+| `17_uzaktanLabFix.sql` | sp_AkilliSalonAta + sp_GozetmenAta güncelleme |
+| `18_uzaktanLabOgrenciSayisi.sql` | uzaktan/lab dersleri öğrenci sayısı güncelleme |
 
 > ⚠️ dosya numaralarına göre değil, aşağıdaki sıraya göre çalıştır!
 
 ### çalıştırma sırası (fresh install)
 
 ```
-01 → 02 → 03 → 05 → 04 → 06 → 07 → 09 → 10 → 14 → 12 → 13 → 16
+01 → 02 → 03 → 05 → 04 → 06 → 07 → 09 → 10 → 14 → 12 → 13 → 16 → 18
 ```
 
 > not: 05 (fonksiyonlar), 04'ten (prosedürler) önce gelmeli çünkü prosedürler fonksiyonlara bağımlı.  
 > 08 (örnek veri) ve 15 (bug düzeltmeleri) opsiyonel — canlı db'de sadece gerekirse çalıştır.
+
+### çalıştırma sırası (mevcut db — sadece yeni scriptler)
+
+```
+15 → 16 → 17 → 18
+```
 
 ---
 
@@ -153,6 +161,23 @@ visual studio'da `SinavTakipApp.sln` dosyasını aç → build → build solutio
 | enerji sistemleri mühendisliği (ens) | 1–8 |
 
 uzaktan dersler `dersTuru = 'uzaktan'`, lab dersleri `dersTuru = 'laboratuvar'` ve `ogrenciSayisi = 0` olarak işaretlenmiştir.
+
+---
+
+## son güncellemeler
+
+| güncelleme | detay |
+|---|---|
+| salon atama algoritması optimize edildi | kalan kapasiteyi karşılayan en küçük salon seçiliyor (60+36, 60+60 yerine) |
+| uzaktan/lab dersleri salon atama düzeltildi | bu ders türleri artık gerçek öğrenci sayısıyla salon alıyor |
+| uzaktan/lab öğrenci sayıları bölüme göre eklendi | `18_uzaktanLabOgrenciSayisi.sql` ile otomatik dolduruldu |
+| sınav formunda ders türü ve bölüm gösteriliyor | `[Zorunlu]`, `[Uzaktan]` gibi etiketler + bölüm adı eklendi |
+| sınav formu genişletildi | form ve combobox büyütüldü, metin okunabilir hale geldi |
+| gözetmen atamada bölüm kısıtlaması | bölümde müsait gözetmen varken havuzdan atama yapılamıyor |
+| gözetmen listesi genişletildi | liste büyütüldü, bölüm adı belirgin şekilde görünüyor |
+| salona maksimum 1 gözetmen | her salona yalnızca 1 gözetmen atanabiliyor (sp + form kontrolü) |
+| 45 akademik personel eklendi | 5 bölümün tüm öğretim üyeleri `16_personel.sql` ile eklendi |
+| er diyagramı eklendi | `ER Diyagramı.png` repo'ya eklendi |
 
 ---
 
