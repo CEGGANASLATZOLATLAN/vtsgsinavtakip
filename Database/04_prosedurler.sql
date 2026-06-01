@@ -330,7 +330,7 @@ BEGIN
                     FORMAT(GETDATE(), 'yyyyMMdd_HHmmss') + N'.bak';
 
     SET @SQL = N'BACKUP DATABASE SinavTakip TO DISK = N''' + @DosyaAdi +
-               N''' WITH FORMAT, COMPRESSION, NAME = N''SinavTakip Otomatik Yedek'';';
+               N''' WITH FORMAT, NAME = N''SinavTakip Otomatik Yedek'';';
 
     EXEC sp_executesql @SQL;
 
